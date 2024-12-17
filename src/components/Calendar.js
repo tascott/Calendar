@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, setHours } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
 
 const locales = { 'en-US': enUS };
@@ -32,6 +32,24 @@ const MyCalendar = () => {
   const [events, setEvents] = useState(initialEvents);
   const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [dayStartHour, setDayStartHour] = useState(6);
+  const [selectedStartHour, setSelectedStartHour] = useState(6);
+
+  const getDayStartTime = () => {
+    const date = new Date();
+    date.setHours(dayStartHour, 0, 0, 0);
+    return date;
+  };
+
+  const handleSettingsOpen = () => {
+    setSelectedStartHour(dayStartHour);
+    setIsSettingsModalOpen(true);
+  };
+
+  const handleSettingsSave = () => {
+    setDayStartHour(selectedStartHour);
+    setIsSettingsModalOpen(false);
+  };
 
   return (
     <div className="h-[80vh] flex flex-col">
@@ -44,7 +62,7 @@ const MyCalendar = () => {
           + Add Event
         </button>
         <button
-          onClick={() => setIsSettingsModalOpen(true)}
+          onClick={handleSettingsOpen}
           className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-md shadow-sm"
         >
           ⚙️ Settings
@@ -59,6 +77,7 @@ const MyCalendar = () => {
           startAccessor="start"
           endAccessor="end"
           style={{ height: '100%' }}
+          min={getDayStartTime()}
         />
       </div>
 
@@ -89,6 +108,25 @@ const MyCalendar = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96 shadow-xl">
             <h2 className="text-xl font-bold mb-4">Settings</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Day Start Time
+              </label>
+              <select
+                value={selectedStartHour}
+                onChange={(e) => setSelectedStartHour(Number(e.target.value))}
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {[...Array(24)].map((_, i) => (
+                  <option key={i} value={i}>
+                    {i === 0 ? '12:00 AM' :
+                     i < 12 ? `${i}:00 AM` :
+                     i === 12 ? '12:00 PM' :
+                     `${i-12}:00 PM`}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsSettingsModalOpen(false)}
@@ -97,6 +135,7 @@ const MyCalendar = () => {
                 Cancel
               </button>
               <button
+                onClick={handleSettingsSave}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
                 Save
