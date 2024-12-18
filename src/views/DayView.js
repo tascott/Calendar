@@ -2,7 +2,7 @@ import React from 'react';
 import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
 
-function EventBlock({ event }) {
+function EventBlock({ event, onClick }) {
     // Convert time string to minutes since start of day
     const timeToMinutes = (timeStr) => {
         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -19,9 +19,15 @@ function EventBlock({ event }) {
 
     const isStatus = event.type === 'status';
 
+    const handleClick = (e) => {
+        e.stopPropagation(); // Prevent grid's double-click from firing
+        onClick?.(event);
+    };
+
     return (
         <div
-            className={`absolute left-1 right-1 rounded-lg p-2 ${
+            onDoubleClick={handleClick}
+            className={`absolute left-1 right-1 rounded-lg p-2 cursor-pointer hover:opacity-90 ${
                 isStatus ? 'bg-yellow-100' : 'bg-blue-100'
             }`}
             style={{
@@ -45,6 +51,10 @@ function EventBlock({ event }) {
 }
 
 function DayView({ onDoubleClick, events = [] }) {
+    const snapToNearestFifteen = (minutes) => {
+        return Math.round(minutes / 15) * 15;
+    };
+
     const handleDoubleClick = (e) => {
         if (!onDoubleClick) return;
 
@@ -52,14 +62,22 @@ function DayView({ onDoubleClick, events = [] }) {
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
 
-        // Calculate hour based on click position
+        // Calculate minutes since start of day
         const hourHeight = 48; // 3rem = 48px
-        const hour = Math.floor(y / hourHeight);
-        const minutes = Math.floor((y % hourHeight) / (hourHeight / 60));
+        const totalMinutes = (y / hourHeight) * 60;
+        const snappedMinutes = snapToNearestFifteen(totalMinutes);
+
+        // Convert to hours and minutes
+        const hours = Math.floor(snappedMinutes / 60);
+        const minutes = snappedMinutes % 60;
 
         // Format time string (HH:MM)
-        const timeString = `${hour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
         onDoubleClick(timeString);
+    };
+
+    const handleEventClick = (event) => {
+        onDoubleClick(event.startTime, event); // Pass the entire event object for editing
     };
 
     return (
@@ -85,7 +103,11 @@ function DayView({ onDoubleClick, events = [] }) {
                 {/* Events */}
                 <div className="absolute inset-0">
                     {events.map(event => (
-                        <EventBlock key={event.id} event={event} />
+                        <EventBlock
+                            key={event.id}
+                            event={event}
+                            onClick={handleEventClick}
+                        />
                     ))}
                 </div>
             </div>

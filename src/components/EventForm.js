@@ -1,15 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-function EventForm({ onSubmit, onCancel, initialDate, initialTime }) {
-    const [formData, setFormData] = useState({
-        name: '',
-        date: initialDate || new Date().toISOString().split('T')[0],
-        startTime: initialTime || '09:00',
-        endTime: initialTime ?
+function EventForm({ onSubmit, onCancel, initialDate, initialTime, initialData }) {
+    const [formData, setFormData] = useState(() => ({
+        name: initialData?.name || '',
+        date: initialData?.date || initialDate || new Date().toISOString().split('T')[0],
+        startTime: initialData?.startTime || initialTime || '09:00',
+        endTime: initialData?.endTime || (initialTime ?
             new Date(new Date(`2000-01-01T${initialTime}`).getTime() + 60*60*1000).toTimeString().slice(0,5)
-            : '10:00',
-        type: 'event'
-    });
+            : '10:00'),
+        type: initialData?.type || 'event'
+    }));
+
+    // Update form when initialData or initialTime changes
+    useEffect(() => {
+        if (initialData) {
+            setFormData({
+                name: initialData.name,
+                date: initialData.date,
+                startTime: initialData.startTime,
+                endTime: initialData.endTime,
+                type: initialData.type
+            });
+        } else if (initialTime) {
+            setFormData(prev => ({
+                ...prev,
+                startTime: initialTime,
+                endTime: new Date(new Date(`2000-01-01T${initialTime}`).getTime() + 60*60*1000)
+                    .toTimeString()
+                    .slice(0,5)
+            }));
+        }
+    }, [initialData, initialTime]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -117,7 +138,7 @@ function EventForm({ onSubmit, onCancel, initialDate, initialTime }) {
                     type="submit"
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                    Create Event
+                    {initialData ? 'Update Event' : 'Create Event'}
                 </button>
             </div>
         </form>
