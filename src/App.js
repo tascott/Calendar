@@ -5,15 +5,35 @@ import MonthView from './views/MonthView';
 import ViewSelector from './components/ViewSelector';
 import EventForm from './components/EventForm';
 
+// Initial events for testing
+const initialEvents = [
+    {
+        id: 1,
+        name: "Team Meeting",
+        date: new Date().toISOString().split('T')[0],
+        startTime: "10:00",
+        endTime: "11:30",
+        type: "event"
+    },
+    {
+        id: 2,
+        name: "Lunch Break",
+        date: new Date().toISOString().split('T')[0],
+        startTime: "12:00",
+        endTime: "13:00",
+        type: "status"
+    }
+];
+
 function App() {
     const [currentView, setCurrentView] = useState('day');
-    const [events, setEvents] = useState([]);
+    const [events, setEvents] = useState(initialEvents);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTime, setSelectedTime] = useState(null);
 
     const handleNewEvent = (eventData) => {
         setEvents(prevEvents => [...prevEvents, {
-            id: Date.now(), // Simple ID generation
+            id: Date.now(),
             ...eventData
         }]);
         setIsModalOpen(false);
@@ -27,7 +47,7 @@ function App() {
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
-            events: events
+            events: events.filter(event => event.date === new Date().toISOString().split('T')[0]) // Only show today's events for now
         };
 
         switch (currentView) {
