@@ -108,7 +108,7 @@ function CurrentTimeLine({ events = [] }) {
 
     return (
         <div
-            className="absolute left-0 right-0 flex items-center pointer-events-none"
+            className="absolute left-0 right-0 flex items-center pointer-events-none z-20"
             style={{ top: `${position}%` }}
         >
             {/* Time label */}
@@ -118,7 +118,7 @@ function CurrentTimeLine({ events = [] }) {
             {/* Line */}
             <div className="flex-1 h-[2px] bg-red-500" />
             {/* Dot */}
-            <div className="absolute left-0 w-2 h-2 bg-red-500 rounded-full -translate-x-1 -translate-y-[3px]" />
+            <div className="absolute left-0 top--3 w-2 h-2 bg-red-500 rounded-full -translate-x-1" />
         </div>
     );
 }

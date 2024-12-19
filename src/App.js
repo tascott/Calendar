@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import DayView from './views/DayView';
 import WeekView from './views/WeekView';
 import MonthView from './views/MonthView';
@@ -51,6 +53,14 @@ function App() {
         setEditingEvent(null);
     };
 
+    const handleEventUpdate = (eventId, updates) => {
+        setEvents(prevEvents => prevEvents.map(event =>
+            event.id === eventId
+                ? { ...event, ...updates }
+                : event
+        ));
+    };
+
     const handleGridDoubleClick = (time, event = null) => {
         setSelectedTime(time);
         setEditingEvent(event);
@@ -66,6 +76,7 @@ function App() {
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
+            onEventUpdate: handleEventUpdate,
             events: events.filter(event => event.date === new Date().toISOString().split('T')[0]) // Only show today's events for now
         };
 
@@ -80,50 +91,52 @@ function App() {
     };
 
     return (
-        <div className="h-screen w-full flex flex-col bg-gray-100">
-            {/* Header */}
-            <header className="flex-none w-full bg-white shadow-sm">
-                <div className="max-w-[1600px] w-full mx-auto px-4 py-4">
-                    <div className="flex justify-between items-center mb-4">
-                        <h1 className="text-2xl font-semibold text-gray-800">My Calendar</h1>
-                        <button
-                            onClick={() => handleGridDoubleClick(null)}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                            New Event
-                        </button>
+        <DndProvider backend={HTML5Backend}>
+            <div className="h-screen w-full flex flex-col bg-gray-100">
+                {/* Header */}
+                <header className="flex-none w-full bg-white shadow-sm">
+                    <div className="max-w-[1600px] w-full mx-auto px-4 py-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <h1 className="text-2xl font-semibold text-gray-800">My Calendar</h1>
+                            <button
+                                onClick={() => handleGridDoubleClick(null)}
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                New Event
+                            </button>
+                        </div>
+                        <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
                     </div>
-                    <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
-                </div>
-            </header>
+                </header>
 
-            {/* Main Content */}
-            <main className="flex-1 w-full overflow-auto py-4">
-                <div className="max-w-[1600px] w-full mx-auto px-4">
-                    <div className="bg-white rounded-lg shadow p-6">
-                        {renderView()}
+                {/* Main Content */}
+                <main className="flex-1 w-full overflow-auto py-4">
+                    <div className="max-w-[1600px] w-full mx-auto px-4">
+                        <div className="bg-white rounded-lg shadow p-6">
+                            {renderView()}
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
 
-            {/* Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                            {editingEvent ? 'Edit Event' : 'New Event'}
-                        </h2>
-                        <EventForm
-                            onSubmit={handleNewEvent}
-                            onCancel={handleModalClose}
-                            initialTime={selectedTime}
-                            initialDate={new Date().toISOString().split('T')[0]}
-                            initialData={editingEvent}
-                        />
+                {/* Modal */}
+                {isModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                                {editingEvent ? 'Edit Event' : 'New Event'}
+                            </h2>
+                            <EventForm
+                                onSubmit={handleNewEvent}
+                                onCancel={handleModalClose}
+                                initialTime={selectedTime}
+                                initialDate={new Date().toISOString().split('T')[0]}
+                                initialData={editingEvent}
+                            />
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
+        </DndProvider>
     );
 }
 
