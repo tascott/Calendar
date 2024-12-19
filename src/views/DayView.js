@@ -1,6 +1,7 @@
 import React from 'react';
 import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
+import CurrentTimeLine from '../components/CurrentTimeLine';
 
 function EventBlock({ event, onClick }) {
     // Convert time string to minutes since start of day
@@ -99,6 +100,9 @@ function DayView({ onDoubleClick, events = [] }) {
                 ))}
                 {/* Vertical grid overlay */}
                 <GridOverlay />
+
+                {/* Current time line */}
+                <CurrentTimeLine />
 
                 {/* Events */}
                 <div className="absolute inset-0">
