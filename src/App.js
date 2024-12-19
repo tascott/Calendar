@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import DayView from './views/DayView';
@@ -35,27 +35,44 @@ function App() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedTime, setSelectedTime] = useState(null);
     const [editingEvent, setEditingEvent] = useState(null);
-    const [settings, setSettings] = useState({
-        dayStartTime: '06:00',
-        dayEndTime: '22:00',
-        primaryColor: '#3B82F6',
-        defaultEventWidth: 50,
-        statusEventWidth: 50,
+    const [primaryColor, setPrimaryColor] = useState(() => {
+        return localStorage.getItem('primaryColor') || '#3B82F6';
     });
+    const [defaultEventWidth, setDefaultEventWidth] = useState(() => {
+        return parseInt(localStorage.getItem('defaultEventWidth') || '80', 10);
+    });
+    const [defaultStatusWidth, setDefaultStatusWidth] = useState(() => {
+        return parseInt(localStorage.getItem('defaultStatusWidth') || '20', 10);
+    });
+
+    // Save settings to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('primaryColor', primaryColor);
+        localStorage.setItem('defaultEventWidth', defaultEventWidth.toString());
+        localStorage.setItem('defaultStatusWidth', defaultStatusWidth.toString());
+    }, [primaryColor, defaultEventWidth, defaultStatusWidth]);
 
     const handleNewEvent = (eventData) => {
         if (editingEvent) {
-            // Update existing event
+            // Update existing event while preserving xPosition and width
             setEvents(prevEvents => prevEvents.map(event =>
                 event.id === editingEvent.id
-                    ? { ...eventData, id: event.id }
+                    ? {
+                        ...eventData,
+                        id: event.id,
+                        xPosition: event.xPosition,
+                        width: event.width
+                    }
                     : event
             ));
         } else {
-            // Create new event
+            // Create new event with appropriate width and position based on type
+            const isStatus = eventData.type === 'status';
             setEvents(prevEvents => [...prevEvents, {
                 id: Date.now(),
-                ...eventData
+                ...eventData,
+                width: isStatus ? defaultStatusWidth : defaultEventWidth,
+                xPosition: isStatus ? (100 - defaultStatusWidth) : 0 // Right-align status events
             }]);
         }
         setIsModalOpen(false);
@@ -83,7 +100,9 @@ function App() {
     };
 
     const handleSettingsSave = (newSettings) => {
-        setSettings(newSettings);
+        setPrimaryColor(newSettings.primaryColor);
+        setDefaultEventWidth(newSettings.defaultEventWidth);
+        setDefaultStatusWidth(newSettings.defaultStatusWidth);
         setIsSettingsOpen(false);
     };
 
@@ -121,13 +140,18 @@ function App() {
                                 </button>
                                 <button
                                     onClick={() => handleGridDoubleClick(null)}
-                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    style={{ backgroundColor: primaryColor }}
+                                    className="px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                 >
                                     New Event
                                 </button>
                             </div>
                         </div>
-                        <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
+                        <ViewSelector
+                            currentView={currentView}
+                            onViewChange={setCurrentView}
+                            primaryColor={primaryColor}
+                        />
                     </div>
                 </header>
 
@@ -168,7 +192,11 @@ function App() {
                             <SettingsForm
                                 onSubmit={handleSettingsSave}
                                 onCancel={() => setIsSettingsOpen(false)}
-                                initialSettings={settings}
+                                initialSettings={{
+                                    primaryColor,
+                                    defaultEventWidth,
+                                    defaultStatusWidth
+                                }}
                             />
                         </div>
                     </div>

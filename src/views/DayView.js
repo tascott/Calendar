@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
@@ -40,27 +40,37 @@ function EventBlock({ event, onClick, onUpdate }) {
         onClick?.(event);
     };
 
+    // Memoize the drag item creator to ensure it uses the latest event data
+    const createDragItem = useCallback((monitor) => {
+        const rect = elementRef.current?.getBoundingClientRect();
+        const clientOffset = monitor.getClientOffset();
+
+        // Recalculate duration from current event times
+        const currentStartMinutes = timeToMinutes(event.startTime);
+        const currentEndMinutes = timeToMinutes(event.endTime);
+        const currentDuration = currentEndMinutes - currentStartMinutes;
+
+        return {
+            id: event.id,
+            startMinutes: currentStartMinutes,
+            duration: currentDuration,
+            xPosition: event.xPosition || 0,
+            width: event.width || 50,
+            type: event.type,
+            grabOffset: rect && clientOffset ? {
+                y: clientOffset.y - rect.top,
+                x: clientOffset.x - rect.left
+            } : { x: 0, y: 0 }
+        };
+    }, [event]); // Depend on the entire event object to update when any part changes
+
     const [{ isDragging }, drag] = useDrag(() => ({
         type: DRAG_TYPE,
-        item: (monitor) => {
-            const rect = elementRef.current?.getBoundingClientRect();
-            const clientOffset = monitor.getClientOffset();
-
-            return {
-                id: event.id,
-                startMinutes,
-                duration,
-                xPosition: event.xPosition || 0,
-                grabOffset: rect && clientOffset ? {
-                    y: clientOffset.y - rect.top,
-                    x: clientOffset.x - rect.left
-                } : { x: 0, y: 0 }
-            };
-        },
+        item: createDragItem,
         collect: (monitor) => ({
             isDragging: monitor.isDragging()
         })
-    }));
+    }), [createDragItem]); // Update when createDragItem changes
 
     // Combine refs
     const dragRef = (el) => {
@@ -80,7 +90,7 @@ function EventBlock({ event, onClick, onUpdate }) {
                 height: `${heightPercentage}%`,
                 minHeight: '1.5rem',
                 left: `${leftPosition}%`,
-                width: '50%'
+                width: `${event.width || 50}%`
             }}
         >
             <div className={`text-sm font-medium ${
@@ -115,11 +125,19 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
         return snapToNearestFifteen(Math.max(0, Math.min(totalMinutes, 24 * 60 - 15)));
     };
 
-    const calculateXPosition = (x, rect, grabOffset) => {
+    const calculateXPosition = (x, rect, grabOffset, eventWidth, isStatus) => {
         const adjustedX = x - grabOffset.x;
         const percentage = (adjustedX / rect.width) * 100;
-        // Snap to nearest 5% and ensure event stays within bounds (0% to 50%)
-        return snapToNearestFive(Math.max(0, Math.min(percentage, 50)));
+        const snappedPercentage = snapToNearestFive(percentage);
+
+        if (isStatus) {
+            // For status events, ensure they don't go beyond the left edge
+            // Maximum position is 100 - width
+            return Math.max(0, Math.min(snappedPercentage, 100 - eventWidth));
+        } else {
+            // For regular events, keep them in the left half
+            return Math.max(0, Math.min(snappedPercentage, 50));
+        }
     };
 
     const [, drop] = useDrop(() => ({
@@ -134,7 +152,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
 
             // Calculate new start time and x position
             const newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
-            const newXPosition = calculateXPosition(x, rect, item.grabOffset);
+            const newXPosition = calculateXPosition(x, rect, item.grabOffset, item.width, item.type === 'status');
 
             // Update event times and position
             const startTime = `${Math.floor(newStartMinutes / 60).toString().padStart(2, '0')}:${(newStartMinutes % 60).toString().padStart(2, '0')}`;
@@ -144,7 +162,8 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
             onEventUpdate(item.id, {
                 startTime,
                 endTime,
-                xPosition: newXPosition
+                xPosition: newXPosition,
+                width: item.width
             });
         }
     }), [onEventUpdate]);
