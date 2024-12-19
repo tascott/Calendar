@@ -2,6 +2,7 @@ import React from 'react';
 import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
 import CurrentTimeLine from '../components/CurrentTimeLine';
+import { Toaster } from 'react-hot-toast';
 
 function EventBlock({ event, onClick }) {
     // Convert time string to minutes since start of day
@@ -102,7 +103,7 @@ function DayView({ onDoubleClick, events = [] }) {
                 <GridOverlay />
 
                 {/* Current time line */}
-                <CurrentTimeLine />
+                <CurrentTimeLine events={events} />
 
                 {/* Events */}
                 <div className="absolute inset-0">
@@ -114,6 +115,9 @@ function DayView({ onDoubleClick, events = [] }) {
                         />
                     ))}
                 </div>
+
+                {/* Toast container */}
+                <Toaster />
             </div>
         </div>
     );
