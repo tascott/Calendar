@@ -8,7 +8,7 @@ import { Toaster } from 'react-hot-toast';
 const DRAG_TYPE = 'event';
 const SNAP_INCREMENTS = Array.from({ length: 21 }, (_, i) => i * 5); // 0, 5, 10, ..., 100
 
-function EventBlock({ event, onClick, onUpdate }) {
+function EventBlock({ event, onClick, onUpdate, settings }) {
     const elementRef = useRef(null);
 
     // Convert time string to minutes since start of day
@@ -28,12 +28,18 @@ function EventBlock({ event, onClick, onUpdate }) {
     const endMinutes = timeToMinutes(event.endTime);
     const duration = endMinutes - startMinutes;
 
-    // Calculate position and height
-    const topPercentage = (startMinutes / (24 * 60)) * 100;
-    const heightPercentage = (duration / (24 * 60)) * 100;
+    // Get visible time range
+    const visibleStartMinutes = timeToMinutes(settings?.dayStartTime || '00:00');
+    const visibleEndMinutes = timeToMinutes(settings?.dayEndTime || '24:00');
+    const visibleDuration = visibleEndMinutes - visibleStartMinutes || 24 * 60; // Fallback to 24 hours if same time
+
+    // Calculate position and height relative to visible range
+    const topPercentage = ((startMinutes - visibleStartMinutes) / visibleDuration) * 100;
+    const heightPercentage = (duration / visibleDuration) * 100;
     const leftPosition = event.xPosition || 0;
 
     const isStatus = event.type === 'status';
+    const isOutOfRange = endMinutes <= visibleStartMinutes || startMinutes >= visibleEndMinutes;
 
     const handleClick = (e) => {
         e.stopPropagation(); // Prevent grid's double-click from firing
@@ -62,7 +68,7 @@ function EventBlock({ event, onClick, onUpdate }) {
                 x: clientOffset.x - rect.left
             } : { x: 0, y: 0 }
         };
-    }, [event]); // Depend on the entire event object to update when any part changes
+    }, [event]);
 
     const [{ isDragging }, drag] = useDrag(() => ({
         type: DRAG_TYPE,
@@ -70,13 +76,17 @@ function EventBlock({ event, onClick, onUpdate }) {
         collect: (monitor) => ({
             isDragging: monitor.isDragging()
         })
-    }), [createDragItem]); // Update when createDragItem changes
+    }), [createDragItem]);
 
     // Combine refs
     const dragRef = (el) => {
         elementRef.current = el;
         drag(el);
     };
+
+    if (isOutOfRange) {
+        return null;
+    }
 
     return (
         <div
@@ -107,7 +117,21 @@ function EventBlock({ event, onClick, onUpdate }) {
     );
 }
 
-function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
+// Out of range indicator component
+function OutOfRangeIndicator({ position, count }) {
+    return (
+        <div
+            className={`absolute ${position === 'top' ? 'top-0' : 'bottom-0'} left-0 right-0 flex justify-center`}
+            style={{ transform: position === 'top' ? 'translateY(-100%)' : 'translateY(100%)' }}
+        >
+            <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
+                {count} event{count !== 1 ? 's' : ''} not shown
+            </div>
+        </div>
+    );
+}
+
+function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
     const gridRef = useRef(null);
 
     const snapToNearestFifteen = (minutes) => {
@@ -118,11 +142,37 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
         return Math.round(percentage / 5) * 5;
     };
 
+    // Convert time string to minutes since start of day
+    const timeToMinutes = (timeStr) => {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    };
+
+    const startMinutes = timeToMinutes(settings?.dayStartTime || '00:00');
+    const endMinutes = timeToMinutes(settings?.dayEndTime || '24:00');
+    const visibleHours = Math.ceil((endMinutes - startMinutes || 24 * 60) / 60);
+    const startHour = Math.floor(startMinutes / 60);
+
+    // Group events into visible and out-of-range
+    const { visibleEvents, beforeRange, afterRange } = events.reduce((acc, event) => {
+        const eventStart = timeToMinutes(event.startTime);
+        const eventEnd = timeToMinutes(event.endTime);
+
+        if (eventEnd <= startMinutes) {
+            acc.beforeRange.push(event);
+        } else if (eventStart >= endMinutes) {
+            acc.afterRange.push(event);
+        } else {
+            acc.visibleEvents.push(event);
+        }
+        return acc;
+    }, { visibleEvents: [], beforeRange: [], afterRange: [] });
+
     const calculateMinutesFromMousePosition = (y, rect, grabOffset) => {
-        // Subtract the grab offset to maintain relative position
         const adjustedY = y - grabOffset.y;
-        const totalMinutes = (adjustedY / rect.height) * (24 * 60);
-        return snapToNearestFifteen(Math.max(0, Math.min(totalMinutes, 24 * 60 - 15)));
+        const visibleMinutes = endMinutes - startMinutes;
+        const totalMinutes = (adjustedY / rect.height) * visibleMinutes + startMinutes;
+        return snapToNearestFifteen(Math.max(startMinutes, Math.min(totalMinutes, endMinutes - 15)));
     };
 
     const calculateXPosition = (x, rect, grabOffset, eventWidth, isStatus) => {
@@ -181,9 +231,10 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
         // Ensure we don't start an event beyond the 50% mark
         const adjustedXPosition = Math.min(xPosition, 50);
 
-        // Calculate minutes since start of day
-        const totalMinutes = (y / rect.height) * (24 * 60);
-        const snappedMinutes = snapToNearestFifteen(totalMinutes);
+        // Calculate minutes within visible range
+        const visibleMinutes = endMinutes - startMinutes;
+        const totalMinutes = (y / rect.height) * visibleMinutes + startMinutes;
+        const snappedMinutes = snapToNearestFifteen(Math.max(startMinutes, Math.min(totalMinutes, endMinutes - 15)));
 
         // Convert to hours and minutes
         const hours = Math.floor(snappedMinutes / 60);
@@ -200,12 +251,24 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
 
     return (
         <div className="flex w-full">
-            <TimeColumn />
+            <TimeColumn startHour={startHour} numHours={visibleHours} />
             <div
                 ref={drop}
-                className="relative flex-1 grid grid-rows-[repeat(24,3rem)]"
+                className="relative flex-1"
                 onDoubleClick={handleDoubleClick}
+                style={{
+                    display: 'grid',
+                    gridTemplateRows: `repeat(${visibleHours}, 3rem)`
+                }}
             >
+                {/* Out of range indicators */}
+                {beforeRange.length > 0 && (
+                    <OutOfRangeIndicator position="top" count={beforeRange.length} />
+                )}
+                {afterRange.length > 0 && (
+                    <OutOfRangeIndicator position="bottom" count={afterRange.length} />
+                )}
+
                 {/* Snap guides */}
                 {SNAP_INCREMENTS.map(position => (
                     <div
@@ -218,7 +281,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
                 ))}
 
                 {/* Horizontal hour lines */}
-                {Array.from({ length: 24 }, (_, i) => (
+                {Array.from({ length: visibleHours }, (_, i) => (
                     <div
                         key={i}
                         className="border-t border-gray-200 relative"
@@ -230,18 +293,19 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
 
                 {/* Events */}
                 <div ref={gridRef} className="absolute inset-0">
-                    {events.map(event => (
+                    {visibleEvents.map(event => (
                         <EventBlock
                             key={event.id}
                             event={event}
                             onClick={handleEventClick}
                             onUpdate={onEventUpdate}
+                            settings={settings}
                         />
                     ))}
                 </div>
 
                 {/* Current time line */}
-                <CurrentTimeLine events={events} />
+                <CurrentTimeLine events={events} settings={settings} />
 
                 {/* Toast container */}
                 <Toaster />

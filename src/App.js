@@ -44,13 +44,21 @@ function App() {
     const [defaultStatusWidth, setDefaultStatusWidth] = useState(() => {
         return parseInt(localStorage.getItem('defaultStatusWidth') || '20', 10);
     });
+    const [dayStartTime, setDayStartTime] = useState(() => {
+        return localStorage.getItem('dayStartTime') || '06:00';
+    });
+    const [dayEndTime, setDayEndTime] = useState(() => {
+        return localStorage.getItem('dayEndTime') || '22:00';
+    });
 
     // Save settings to localStorage whenever they change
     useEffect(() => {
         localStorage.setItem('primaryColor', primaryColor);
         localStorage.setItem('defaultEventWidth', defaultEventWidth.toString());
         localStorage.setItem('defaultStatusWidth', defaultStatusWidth.toString());
-    }, [primaryColor, defaultEventWidth, defaultStatusWidth]);
+        localStorage.setItem('dayStartTime', dayStartTime);
+        localStorage.setItem('dayEndTime', dayEndTime);
+    }, [primaryColor, defaultEventWidth, defaultStatusWidth, dayStartTime, dayEndTime]);
 
     const handleNewEvent = (eventData) => {
         if (editingEvent) {
@@ -103,6 +111,8 @@ function App() {
         setPrimaryColor(newSettings.primaryColor);
         setDefaultEventWidth(newSettings.defaultEventWidth);
         setDefaultStatusWidth(newSettings.defaultStatusWidth);
+        setDayStartTime(newSettings.dayStartTime);
+        setDayEndTime(newSettings.dayEndTime);
         setIsSettingsOpen(false);
     };
 
@@ -110,7 +120,11 @@ function App() {
         const props = {
             onDoubleClick: handleGridDoubleClick,
             onEventUpdate: handleEventUpdate,
-            events: events.filter(event => event.date === new Date().toISOString().split('T')[0]) // Only show today's events for now
+            events: events.filter(event => event.date === new Date().toISOString().split('T')[0]), // Only show today's events for now
+            settings: {
+                dayStartTime,
+                dayEndTime
+            }
         };
 
         switch (currentView) {
@@ -195,7 +209,9 @@ function App() {
                                 initialSettings={{
                                     primaryColor,
                                     defaultEventWidth,
-                                    defaultStatusWidth
+                                    defaultStatusWidth,
+                                    dayStartTime,
+                                    dayEndTime
                                 }}
                             />
                         </div>

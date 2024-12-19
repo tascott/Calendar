@@ -4,13 +4,17 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
     const [primaryColor, setPrimaryColor] = useState(initialSettings.primaryColor);
     const [defaultEventWidth, setDefaultEventWidth] = useState(initialSettings.defaultEventWidth);
     const [defaultStatusWidth, setDefaultStatusWidth] = useState(initialSettings.defaultStatusWidth);
+    const [dayStartTime, setDayStartTime] = useState(initialSettings.dayStartTime || '06:00');
+    const [dayEndTime, setDayEndTime] = useState(initialSettings.dayEndTime || '22:00');
 
     const handleSubmit = (e) => {
         e.preventDefault();
         onSubmit({
             primaryColor,
             defaultEventWidth,
-            defaultStatusWidth
+            defaultStatusWidth,
+            dayStartTime,
+            dayEndTime
         });
     };
 
@@ -28,6 +32,31 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                 />
                 <div className="mt-1 text-sm text-gray-500">
                     This color will be used for buttons and interactive elements
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Day Start Time
+                    </label>
+                    <input
+                        type="time"
+                        value={dayStartTime}
+                        onChange={(e) => setDayStartTime(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Day End Time
+                    </label>
+                    <input
+                        type="time"
+                        value={dayEndTime}
+                        onChange={(e) => setDayEndTime(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
                 </div>
             </div>
 

@@ -1,15 +1,18 @@
 import React from 'react';
 
-function TimeColumn() {
-    const hours = Array.from({ length: 24 }, (_, i) =>
-        i.toString().padStart(2, '0') + ':00'
-    );
-
+function TimeColumn({ startHour = 0, numHours = 24 }) {
     return (
-        <div className="w-20 pr-4 flex flex-col text-right text-sm text-gray-500">
-            {hours.map((time) => (
-                <div key={time} className="h-12">{time}</div>
-            ))}
+        <div className="w-20 flex-none grid" style={{ gridTemplateRows: `repeat(${numHours}, 3rem)` }}>
+            {Array.from({ length: numHours }, (_, i) => {
+                const hour = (startHour + i) % 24;
+                return (
+                    <div key={i} className="relative text-right pr-4">
+                        <span className="absolute right-4 -top-2.5 text-sm text-gray-500">
+                            {hour.toString().padStart(2, '0')}:00
+                        </span>
+                    </div>
+                );
+            })}
         </div>
     );
 }
