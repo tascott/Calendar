@@ -6,6 +6,7 @@ import WeekView from './views/WeekView';
 import MonthView from './views/MonthView';
 import ViewSelector from './components/ViewSelector';
 import EventForm from './components/EventForm';
+import SettingsForm from './components/SettingsForm';
 
 // Initial events for testing
 const initialEvents = [
@@ -31,8 +32,16 @@ function App() {
     const [currentView, setCurrentView] = useState('day');
     const [events, setEvents] = useState(initialEvents);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedTime, setSelectedTime] = useState(null);
     const [editingEvent, setEditingEvent] = useState(null);
+    const [settings, setSettings] = useState({
+        dayStartTime: '06:00',
+        dayEndTime: '22:00',
+        primaryColor: '#3B82F6',
+        defaultEventWidth: 50,
+        statusEventWidth: 50,
+    });
 
     const handleNewEvent = (eventData) => {
         if (editingEvent) {
@@ -73,6 +82,11 @@ function App() {
         setSelectedTime(null);
     };
 
+    const handleSettingsSave = (newSettings) => {
+        setSettings(newSettings);
+        setIsSettingsOpen(false);
+    };
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
@@ -98,12 +112,20 @@ function App() {
                     <div className="max-w-[1600px] w-full mx-auto px-4 py-4">
                         <div className="flex justify-between items-center mb-4">
                             <h1 className="text-2xl font-semibold text-gray-800">My Calendar</h1>
-                            <button
-                                onClick={() => handleGridDoubleClick(null)}
-                                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                            >
-                                New Event
-                            </button>
+                            <div className="flex space-x-2">
+                                <button
+                                    onClick={() => setIsSettingsOpen(true)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    Settings
+                                </button>
+                                <button
+                                    onClick={() => handleGridDoubleClick(null)}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                >
+                                    New Event
+                                </button>
+                            </div>
                         </div>
                         <ViewSelector currentView={currentView} onViewChange={setCurrentView} />
                     </div>
@@ -118,7 +140,7 @@ function App() {
                     </div>
                 </main>
 
-                {/* Modal */}
+                {/* Event Modal */}
                 {isModalOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
                         <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
@@ -131,6 +153,22 @@ function App() {
                                 initialTime={selectedTime}
                                 initialDate={new Date().toISOString().split('T')[0]}
                                 initialData={editingEvent}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Settings Modal */}
+                {isSettingsOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                                Settings
+                            </h2>
+                            <SettingsForm
+                                onSubmit={handleSettingsSave}
+                                onCancel={() => setIsSettingsOpen(false)}
+                                initialSettings={settings}
                             />
                         </div>
                     </div>
