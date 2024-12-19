@@ -6,6 +6,7 @@ import CurrentTimeLine from '../components/CurrentTimeLine';
 import { Toaster } from 'react-hot-toast';
 
 const DRAG_TYPE = 'event';
+const SNAP_INCREMENTS = Array.from({ length: 21 }, (_, i) => i * 5); // 0, 5, 10, ..., 100
 
 function EventBlock({ event, onClick, onUpdate }) {
     const elementRef = useRef(null);
@@ -30,6 +31,7 @@ function EventBlock({ event, onClick, onUpdate }) {
     // Calculate position and height
     const topPercentage = (startMinutes / (24 * 60)) * 100;
     const heightPercentage = (duration / (24 * 60)) * 100;
+    const leftPosition = event.xPosition || 0;
 
     const isStatus = event.type === 'status';
 
@@ -48,7 +50,11 @@ function EventBlock({ event, onClick, onUpdate }) {
                 id: event.id,
                 startMinutes,
                 duration,
-                grabOffset: rect && clientOffset ? clientOffset.y - rect.top : 0
+                xPosition: event.xPosition || 0,
+                grabOffset: rect && clientOffset ? {
+                    y: clientOffset.y - rect.top,
+                    x: clientOffset.x - rect.left
+                } : { x: 0, y: 0 }
             };
         },
         collect: (monitor) => ({
@@ -66,13 +72,15 @@ function EventBlock({ event, onClick, onUpdate }) {
         <div
             ref={dragRef}
             onDoubleClick={handleClick}
-            className={`absolute left-1 right-1 rounded-lg p-2 cursor-move hover:opacity-90 ${
+            className={`absolute rounded-lg p-2 cursor-move hover:opacity-90 ${
                 isStatus ? 'bg-yellow-100' : 'bg-blue-100'
             } ${isDragging ? 'opacity-50' : ''}`}
             style={{
                 top: `${topPercentage}%`,
                 height: `${heightPercentage}%`,
-                minHeight: '1.5rem'
+                minHeight: '1.5rem',
+                left: `${leftPosition}%`,
+                width: '50%'
             }}
         >
             <div className={`text-sm font-medium ${
@@ -96,11 +104,22 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
         return Math.round(minutes / 15) * 15;
     };
 
+    const snapToNearestFive = (percentage) => {
+        return Math.round(percentage / 5) * 5;
+    };
+
     const calculateMinutesFromMousePosition = (y, rect, grabOffset) => {
         // Subtract the grab offset to maintain relative position
-        const adjustedY = y - grabOffset;
+        const adjustedY = y - grabOffset.y;
         const totalMinutes = (adjustedY / rect.height) * (24 * 60);
         return snapToNearestFifteen(Math.max(0, Math.min(totalMinutes, 24 * 60 - 15)));
+    };
+
+    const calculateXPosition = (x, rect, grabOffset) => {
+        const adjustedX = x - grabOffset.x;
+        const percentage = (adjustedX / rect.width) * 100;
+        // Snap to nearest 5% and ensure event stays within bounds (0% to 50%)
+        return snapToNearestFive(Math.max(0, Math.min(percentage, 50)));
     };
 
     const [, drop] = useDrop(() => ({
@@ -109,17 +128,24 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
             if (!gridRef.current) return;
 
             const rect = gridRef.current.getBoundingClientRect();
-            const y = monitor.getClientOffset().y - rect.top;
+            const clientOffset = monitor.getClientOffset();
+            const y = clientOffset.y - rect.top;
+            const x = clientOffset.x - rect.left;
 
-            // Calculate new start time, accounting for grab offset
+            // Calculate new start time and x position
             const newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
+            const newXPosition = calculateXPosition(x, rect, item.grabOffset);
 
-            // Update event times
+            // Update event times and position
             const startTime = `${Math.floor(newStartMinutes / 60).toString().padStart(2, '0')}:${(newStartMinutes % 60).toString().padStart(2, '0')}`;
             const endMinutes = newStartMinutes + item.duration;
             const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
 
-            onEventUpdate(item.id, { startTime, endTime });
+            onEventUpdate(item.id, {
+                startTime,
+                endTime,
+                xPosition: newXPosition
+            });
         }
     }), [onEventUpdate]);
 
@@ -129,6 +155,12 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
         // Get click position relative to grid
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
+        const x = e.clientX - rect.left;
+
+        // Calculate x position as percentage
+        const xPosition = snapToNearestFive((x / rect.width) * 100);
+        // Ensure we don't start an event beyond the 50% mark
+        const adjustedXPosition = Math.min(xPosition, 50);
 
         // Calculate minutes since start of day
         const totalMinutes = (y / rect.height) * (24 * 60);
@@ -140,7 +172,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
 
         // Format time string (HH:MM)
         const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        onDoubleClick(timeString);
+        onDoubleClick(timeString, null, { xPosition: adjustedXPosition });
     };
 
     const handleEventClick = (event) => {
@@ -155,6 +187,17 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
                 className="relative flex-1 grid grid-rows-[repeat(24,3rem)]"
                 onDoubleClick={handleDoubleClick}
             >
+                {/* Snap guides */}
+                {SNAP_INCREMENTS.map(position => (
+                    <div
+                        key={position}
+                        className={`absolute top-0 bottom-0 w-px ${
+                            position === 50 ? 'bg-gray-300' : 'bg-gray-100'
+                        }`}
+                        style={{ left: `${position}%` }}
+                    />
+                ))}
+
                 {/* Horizontal hour lines */}
                 {Array.from({ length: 24 }, (_, i) => (
                     <div
@@ -165,11 +208,6 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
                         <div className="absolute top-1/2 w-full border-t border-gray-100" />
                     </div>
                 ))}
-                {/* Vertical grid overlay */}
-                <GridOverlay />
-
-                {/* Current time line */}
-                <CurrentTimeLine events={events} />
 
                 {/* Events */}
                 <div ref={gridRef} className="absolute inset-0">
@@ -182,6 +220,9 @@ function DayView({ onDoubleClick, onEventUpdate, events = [] }) {
                         />
                     ))}
                 </div>
+
+                {/* Current time line */}
+                <CurrentTimeLine events={events} />
 
                 {/* Toast container */}
                 <Toaster />
