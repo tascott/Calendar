@@ -112,24 +112,22 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
             ref={dragRef}
             onDoubleClick={handleClick}
             className={`absolute rounded-lg p-2 cursor-move hover:opacity-90 ${
-                isStatus ? 'bg-yellow-100' : 'bg-blue-100'
-            } ${isDragging ? 'opacity-50' : ''}`}
+                isDragging ? 'opacity-50' : ''
+            }`}
             style={{
                 top: `${adjustedTop}%`,
                 height: `${adjustedHeight}%`,
                 minHeight: '1.5rem',
                 left: `${leftPosition}%`,
-                width: `${event.width || 50}%`
+                width: `${event.width || 50}%`,
+                backgroundColor: event.backgroundColor || (event.type === 'status' ? '#FEF3C7' : '#DBEAFE'),
+                color: event.color || (event.type === 'status' ? '#92400E' : '#1E40AF')
             }}
         >
-            <div className={`text-sm font-medium ${
-                isStatus ? 'text-yellow-800' : 'text-blue-800'
-            }`}>
+            <div className="text-sm font-medium">
                 {event.name}
             </div>
-            <div className={`text-xs ${
-                isStatus ? 'text-yellow-600' : 'text-blue-600'
-            }`}>
+            <div className="text-xs">
                 {event.startTime} - {event.endTime}
             </div>
         </div>
