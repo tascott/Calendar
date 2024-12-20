@@ -14,16 +14,16 @@ const initialEvents = [
         id: 1,
         name: "Team Meeting",
         date: new Date().toISOString().split('T')[0],
-        startTime: "10:00",
-        endTime: "11:30",
+        startTime: "13:00",
+        endTime: "15:30",
         type: "event"
     },
     {
         id: 2,
         name: "Lunch Break",
         date: new Date().toISOString().split('T')[0],
-        startTime: "12:00",
-        endTime: "13:00",
+        startTime: "10:00",
+        endTime: "12:00",
         type: "status"
     }
 ];
@@ -180,7 +180,7 @@ function App() {
 
                 {/* Event Modal */}
                 {isModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                         <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
                             <h2 className="text-lg font-semibold text-gray-900 mb-4">
                                 {editingEvent ? 'Edit Event' : 'New Event'}
@@ -198,7 +198,7 @@ function App() {
 
                 {/* Settings Modal */}
                 {isSettingsOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                         <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
                             <h2 className="text-lg font-semibold text-gray-900 mb-4">
                                 Settings

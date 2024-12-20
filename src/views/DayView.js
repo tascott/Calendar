@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
@@ -62,37 +62,40 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
         onClick?.(event);
     };
 
-    // Memoize the drag item creator to ensure it uses the latest event data
-    const createDragItem = useCallback((monitor) => {
-        const rect = elementRef.current?.getBoundingClientRect();
-        const clientOffset = monitor.getClientOffset();
-
-        // Recalculate duration from current event times
-        const currentStartMinutes = timeToMinutes(event.startTime);
-        const currentEndMinutes = timeToMinutes(event.endTime);
-        const currentDuration = currentEndMinutes - currentStartMinutes;
-
-        return {
-            id: event.id,
-            startMinutes: currentStartMinutes,
-            duration: currentDuration,
-            xPosition: event.xPosition || 0,
-            width: event.width || 50,
-            type: event.type,
-            grabOffset: rect && clientOffset ? {
-                y: clientOffset.y - rect.top,
-                x: clientOffset.x - rect.left
-            } : { x: 0, y: 0 }
-        };
-    }, [event]);
-
-    const [{ isDragging }, drag] = useDrag(() => ({
+    const [{ isDragging }, drag] = useDrag({
         type: DRAG_TYPE,
-        item: createDragItem,
+        item: (monitor) => {
+            const rect = elementRef.current.getBoundingClientRect();
+            const clientOffset = monitor.getClientOffset();
+
+            return {
+                id: event.id,
+                startMinutes: timeToMinutes(event.startTime),
+                duration: timeToMinutes(event.endTime) - timeToMinutes(event.startTime),
+                xPosition: event.xPosition || 0,
+                width: event.width || 50,
+                type: event.type,
+                grabOffset: {
+                    y: clientOffset.y - rect.top,
+                    x: clientOffset.x - rect.left
+                }
+            };
+        },
         collect: (monitor) => ({
             isDragging: monitor.isDragging()
-        })
-    }), [createDragItem]);
+        }),
+        end: (item, monitor) => {
+            if (!monitor.didDrop()) {
+                // Reset to original position if not dropped on a valid target
+                onEventUpdate(item.id, {
+                    startTime: event.startTime,
+                    endTime: event.endTime,
+                    xPosition: event.xPosition,
+                    width: event.width
+                });
+            }
+        }
+    });
 
     // Combine refs
     const dragRef = (el) => {
@@ -239,12 +242,26 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
                 ? '24:00'
                 : `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
 
-            onEventUpdate(item.id, {
+            // Store the current position in the item for the drop handler
+            item.currentPosition = {
                 startTime,
                 endTime,
                 xPosition: newXPosition,
-                width: item.width
-            });
+                width: item.width,
+                isDragging: true
+            };
+
+            onEventUpdate(item.id, item.currentPosition);
+        },
+        drop: (item) => {
+            // On drop, trigger a final update with the stored position
+            if (item.currentPosition) {
+                onEventUpdate(item.id, {
+                    ...item.currentPosition,
+                    isDragging: false,
+                    justDropped: true // Add a flag to indicate this is a final drop
+                });
+            }
         }
     }), [onEventUpdate]);
 
@@ -311,13 +328,14 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
                 ))}
 
                 {/* Horizontal hour lines */}
-                {Array.from({ length: visibleHours }, (_, i) => (
+                {Array.from({ length: visibleHours + 1 }, (_, i) => (
                     <div
                         key={i}
-                        className="border-t border-gray-200 relative"
+                        className={`border-t border-gray-200 relative ${i === visibleHours ? 'border-b border-gray-200' : ''}`}
                     >
-                        {/* 30-minute marker */}
-                        <div className="absolute top-1/2 w-full border-t border-gray-100" />
+                        {i < visibleHours && (
+                            <div className="absolute top-1/2 w-full border-t border-gray-100" />
+                        )}
                     </div>
                 ))}
 
