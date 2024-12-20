@@ -358,7 +358,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
     };
 
     return (
-        <div className="flex w-full">
+        <div className="flex w-full pt-4">
             <TimeColumn startHour={startHour} numHours={visibleHours} />
             <div
                 ref={drop}
@@ -382,8 +382,8 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
                     <div
                         key={position}
                         className={`absolute top-0 bottom-0 w-px ${
-                            position === 50 ? 'bg-gray-300' : 'bg-gray-100'
-                        }`}
+                            position === 50 ? 'bg-gray-300' : 'bg-gray-200'
+                        } pointer-events-none`}
                         style={{ left: `${position}%` }}
                     />
                 ))}

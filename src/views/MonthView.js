@@ -20,14 +20,14 @@ function MonthEvent({ event }) {
 }
 
 function MonthView({ events = [] }) {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
 
     // Get first day of the month
     const firstDay = new Date(currentYear, currentMonth, 1);
-    const startingDayOfWeek = firstDay.getDay();
+    const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
 
     // Get last day of the month
     const lastDay = new Date(currentYear, currentMonth + 1, 0);
