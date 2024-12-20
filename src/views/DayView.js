@@ -1,4 +1,4 @@
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { useDrag, useDrop } from 'react-dnd';
 import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
@@ -10,6 +10,10 @@ const SNAP_INCREMENTS = Array.from({ length: 21 }, (_, i) => i * 5); // 0, 5, 10
 
 function EventBlock({ event, onClick, onUpdate, settings }) {
     const elementRef = useRef(null);
+    const touchTimeout = useRef(null);
+    const lastTap = useRef(0);
+    const [isLongPress, setIsLongPress] = useState(false);
+    const [isTouched, setIsTouched] = useState(false);
 
     // Convert time string to minutes since start of day
     const timeToMinutes = (timeStr) => {
@@ -57,10 +61,62 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
         }
     }
 
-    const handleClick = (e) => {
-        e.stopPropagation(); // Prevent grid's double-click from firing
+    const handleTouchStart = useCallback((e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap.current;
+
+        setIsTouched(true);
+
+        if (tapLength < 300 && tapLength > 0) {
+            // Double tap detected
+            handleDoubleClick(e);
+            lastTap.current = 0;
+            setIsTouched(false);
+        } else {
+            // Start potential drag
+            lastTap.current = currentTime;
+            touchTimeout.current = setTimeout(() => {
+                setIsLongPress(true);
+                // Add a subtle vibration when drag is ready
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(50);
+                }
+            }, 100);
+        }
+    }, []);
+
+    const handleTouchMove = useCallback((e) => {
+        // Clear the timeout and last tap if we're moving
+        if (touchTimeout.current) {
+            clearTimeout(touchTimeout.current);
+        }
+        lastTap.current = 0;
+        if (!isLongPress) {
+            setIsTouched(false);
+        }
+    }, [isLongPress]);
+
+    const handleTouchEnd = useCallback((e) => {
+        if (touchTimeout.current) {
+            clearTimeout(touchTimeout.current);
+        }
+        setIsLongPress(false);
+        setIsTouched(false);
+    }, []);
+
+    const handleDoubleClick = (e) => {
+        e.stopPropagation();
         onClick?.(event);
     };
+
+    // Clean up timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (touchTimeout.current) {
+                clearTimeout(touchTimeout.current);
+            }
+        };
+    }, []);
 
     const [{ isDragging }, drag] = useDrag({
         type: DRAG_TYPE,
@@ -75,6 +131,8 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                 xPosition: event.xPosition || 0,
                 width: event.width || 50,
                 type: event.type,
+                backgroundColor: event.backgroundColor,
+                color: event.color,
                 grabOffset: {
                     y: clientOffset.y - rect.top,
                     x: clientOffset.x - rect.left
@@ -84,16 +142,8 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
         collect: (monitor) => ({
             isDragging: monitor.isDragging()
         }),
-        end: (item, monitor) => {
-            if (!monitor.didDrop()) {
-                // Reset to original position if not dropped on a valid target
-                onEventUpdate(item.id, {
-                    startTime: event.startTime,
-                    endTime: event.endTime,
-                    xPosition: event.xPosition,
-                    width: event.width
-                });
-            }
+        options: {
+            delayTouchStart: 100
         }
     });
 
@@ -110,9 +160,14 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
     return (
         <div
             ref={dragRef}
-            onDoubleClick={handleClick}
-            className={`absolute rounded-lg p-2 cursor-move hover:opacity-90 ${
-                isDragging ? 'opacity-50' : ''
+            onDoubleClick={handleDoubleClick}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className={`absolute rounded-lg p-2 select-none transition-all duration-150 ${
+                isDragging ? 'opacity-50 scale-105' : 'hover:opacity-90'
+            } ${isLongPress ? 'cursor-move scale-105 shadow-lg' : 'cursor-pointer'} ${
+                isTouched ? 'ring-2 ring-blue-400' : ''
             }`}
             style={{
                 top: `${adjustedTop}%`,
@@ -121,9 +176,17 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                 left: `${leftPosition}%`,
                 width: `${event.width || 50}%`,
                 backgroundColor: event.backgroundColor || (event.type === 'status' ? '#FEF3C7' : '#DBEAFE'),
-                color: event.color || (event.type === 'status' ? '#92400E' : '#1E40AF')
+                color: event.color || (event.type === 'status' ? '#92400E' : '#1E40AF'),
+                touchAction: 'none',
+                transform: isLongPress ? 'scale(1.05)' : 'none',
+                boxShadow: isLongPress ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : 'none'
             }}
         >
+            {isLongPress && (
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded">
+                    Ready to drag
+                </div>
+            )}
             <div className="text-sm font-medium">
                 {event.name}
             </div>
@@ -263,7 +326,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
         }
     }), [onEventUpdate]);
 
-    const handleDoubleClick = (e) => {
+    const handleGridDoubleClick = (e) => {
         if (!onDoubleClick) return;
 
         // Get click position relative to grid
@@ -300,7 +363,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
             <div
                 ref={drop}
                 className="relative flex-1"
-                onDoubleClick={handleDoubleClick}
+                onDoubleClick={handleGridDoubleClick}
                 style={{
                     display: 'grid',
                     gridTemplateRows: `repeat(${visibleHours}, 3rem)`
