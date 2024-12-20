@@ -194,13 +194,13 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
         return snapToNearestFifteen(Math.max(startMinutes, Math.min(totalMinutes, endMinutes - 15)));
     };
 
-    const calculateXPosition = (x, rect, grabOffset, eventWidth, isStatus) => {
+    const calculateXPosition = (x, rect, grabOffset, eventWidth, eventType) => {
         const adjustedX = x - grabOffset.x;
         const percentage = (adjustedX / rect.width) * 100;
         const snappedPercentage = snapToNearestFive(percentage);
 
-        if (isStatus) {
-            // For status events, ensure they don't go beyond the left edge
+        if (eventType === 'status' || eventType === 'focus') {
+            // For status and focus events, ensure they don't go beyond the left edge
             // Maximum position is 100 - width
             return Math.max(0, Math.min(snappedPercentage, 100 - eventWidth));
         } else {
@@ -221,7 +221,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
 
             // Calculate new start time and x position
             let newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
-            const newXPosition = calculateXPosition(x, rect, item.grabOffset, item.width, item.type === 'status');
+            const newXPosition = calculateXPosition(x, rect, item.grabOffset, item.width, item.type);
 
             // Cap end time at midnight (24:00)
             const potentialEndMinutes = newStartMinutes + item.duration;

@@ -25,7 +25,7 @@ const initialEvents = [
         date: new Date().toISOString().split('T')[0],
         startTime: "10:00",
         endTime: "12:00",
-        type: "status",
+        type: "focus",
         xPosition: 80,
         width: 20
     }
@@ -204,6 +204,7 @@ function App() {
                         {renderView()}
                         <StatusOverlay
                             isActive={events.some(event => {
+                                if (event.type !== 'focus') return false;
                                 const now = new Date();
                                 const [hours, minutes] = event.startTime.split(':').map(Number);
                                 const [endHours, endMinutes] = event.endTime.split(':').map(Number);
@@ -213,6 +214,7 @@ function App() {
                                 return currentTime >= eventStart && currentTime < eventEnd;
                             })}
                             event={events.find(event => {
+                                if (event.type !== 'focus') return false;
                                 const now = new Date();
                                 const [hours, minutes] = event.startTime.split(':').map(Number);
                                 const [endHours, endMinutes] = event.endTime.split(':').map(Number);

@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 function StatusOverlay({ isActive, event }) {
     const [opacity, setOpacity] = useState(0);
-    const [showAnimation, setShowAnimation] = useState(true);
     const [text, setText] = useState('');
     const fullText = 'Focus';
+    const typingIntervalRef = useRef(null);
 
     useEffect(() => {
-        // Only show overlay if event is active, is a focus event, and was just dropped
-        const shouldShowOverlay = isActive && event?.type === 'focus' && event?.justDropped;
+        // Only show overlay if event is active, is a focus event
+        const shouldShowOverlay = isActive &&
+            event?.type === 'focus' &&
+            event?.date === new Date().toISOString().split('T')[0];
 
         if (shouldShowOverlay) {
             // Start fade in
@@ -17,22 +19,35 @@ function StatusOverlay({ isActive, event }) {
 
             // Reset text and start typing animation
             setText('');
-            let currentIndex = 0;
-            const typingInterval = setInterval(() => {
-                if (currentIndex < fullText.length) {
-                    setText(prev => prev + fullText[currentIndex]);
-                    currentIndex++;
+            let index = 0;
+
+            // Clear any existing interval
+            if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+            }
+
+            typingIntervalRef.current = setInterval(() => {
+                if (index < fullText.length) {
+                    setText(fullText.slice(0, index + 1));
+                    index++;
                 } else {
-                    clearInterval(typingInterval);
+                    if (typingIntervalRef.current) {
+                        clearInterval(typingIntervalRef.current);
+                    }
                 }
-            }, 150); // Adjust typing speed here
+            }, 150);
 
             return () => {
-                clearInterval(typingInterval);
+                if (typingIntervalRef.current) {
+                    clearInterval(typingIntervalRef.current);
+                }
             };
         } else {
             setOpacity(0);
             setText('');
+            if (typingIntervalRef.current) {
+                clearInterval(typingIntervalRef.current);
+            }
         }
     }, [isActive, event]);
 
@@ -47,11 +62,11 @@ function StatusOverlay({ isActive, event }) {
                 {/* Text with typing animation */}
                 <div className="text-white text-8xl font-bold tracking-wider">
                     {text}
-                    <span className="animate-blink">|</span>
+                    <span className="inline-block w-[4px] h-[80px] bg-white ml-2 animate-blink"></span>
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 @keyframes blink {
                     0%, 100% { opacity: 1; }
                     50% { opacity: 0; }
