@@ -157,41 +157,6 @@ function App() {
         fetchEvents();
     }, []);
 
-    // Update backend whenever events change
-    useEffect(() => {
-        if (events.length > 0) {
-            saveEvents(events);
-        }
-    }, [events]);
-
-    const handleNewEvent = (eventData) => {
-        if (editingEvent) {
-            // Update existing event
-            const updatedEvents = events.map(event =>
-                event.id === editingEvent.id
-                    ? {
-                        ...eventData,
-                        id: event.id,
-                        xPosition: event.xPosition
-                    }
-                    : event
-            );
-            setEvents(updatedEvents);
-        } else {
-            // Create new event
-            const isStatus = eventData.type === 'status';
-            const newEvent = {
-                id: Date.now(),
-                ...eventData,
-                width: isStatus ? defaultStatusWidth : defaultEventWidth,
-                xPosition: isStatus ? (100 - defaultStatusWidth) : 0
-            };
-            setEvents(prevEvents => [...prevEvents, newEvent]);
-        }
-        setIsModalOpen(false);
-        setEditingEvent(null);
-    };
-
     const handleEventUpdate = (eventId, updates) => {
         // Create a new array with the updated event
         const updatedEvents = events.map(event =>
@@ -207,6 +172,37 @@ function App() {
 
         // Update local state
         setEvents(updatedEvents);
+    };
+
+    const handleNewEvent = (eventData) => {
+        if (editingEvent) {
+            // Update existing event
+            const updatedEvents = events.map(event =>
+                event.id === editingEvent.id
+                    ? {
+                        ...eventData,
+                        id: event.id,
+                        xPosition: event.xPosition
+                    }
+                    : event
+            );
+            setEvents(updatedEvents);
+            saveEvents(updatedEvents); // Add explicit save here
+        } else {
+            // Create new event
+            const isStatus = eventData.type === 'status';
+            const newEvent = {
+                id: Date.now(),
+                ...eventData,
+                width: isStatus ? defaultStatusWidth : defaultEventWidth,
+                xPosition: isStatus ? (100 - defaultStatusWidth) : 0
+            };
+            const newEvents = [...events, newEvent];
+            setEvents(newEvents);
+            saveEvents(newEvents); // Add explicit save here
+        }
+        setIsModalOpen(false);
+        setEditingEvent(null);
     };
 
     const handleGridDoubleClick = (time, event = null) => {
