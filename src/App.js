@@ -10,6 +10,9 @@ import ViewSelector from './components/ViewSelector';
 import EventForm from './components/EventForm';
 import SettingsForm from './components/SettingsForm';
 import StatusOverlay from './components/StatusOverlay';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:3001';
 
 // Initial events for testing
 const initialEvents = [
@@ -35,7 +38,7 @@ const initialEvents = [
 
 function App() {
     const [currentView, setCurrentView] = useState('day');
-    const [events, setEvents] = useState(initialEvents);
+    const [events, setEvents] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedTime, setSelectedTime] = useState(null);
@@ -101,10 +104,70 @@ function App() {
         return () => clearInterval(interval);
     }, [events]);
 
+    // Using Axios
+    const fetchEvents = async () => {
+        try {
+            const response = await axios.get(`${API_URL}/events`);
+            setEvents(response.data);
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        }
+    };
+
+    const saveEvents = async (newEvents) => {
+        try {
+            await axios.post(`${API_URL}/events`, newEvents);
+            setEvents(newEvents);
+        } catch (error) {
+            console.error('Error saving events:', error);
+        }
+    };
+
+    /* Using Fetch API (Alternative Implementation)
+    const fetchEvents = async () => {
+        try {
+            const response = await fetch(`${API_URL}/events`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            setEvents(data);
+        } catch (error) {
+            console.error('Error fetching events:', error);
+        }
+    };
+
+    const saveEvents = async (newEvents) => {
+        try {
+            const response = await fetch(`${API_URL}/events`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(newEvents)
+            });
+            if (!response.ok) throw new Error('Network response was not ok');
+            setEvents(newEvents);
+        } catch (error) {
+            console.error('Error saving events:', error);
+        }
+    };
+    */
+
+    // Fetch events on component mount
+    useEffect(() => {
+        fetchEvents();
+    }, []);
+
+    // Update backend whenever events change
+    useEffect(() => {
+        if (events.length > 0) {
+            saveEvents(events);
+        }
+    }, [events]);
+
     const handleNewEvent = (eventData) => {
         if (editingEvent) {
-            // Update existing event while preserving xPosition and width
-            setEvents(prevEvents => prevEvents.map(event =>
+            // Update existing event
+            const updatedEvents = events.map(event =>
                 event.id === editingEvent.id
                     ? {
                         ...eventData,
@@ -113,16 +176,18 @@ function App() {
                         width: event.width
                     }
                     : event
-            ));
+            );
+            setEvents(updatedEvents);
         } else {
-            // Create new event with appropriate width and position based on type
+            // Create new event
             const isStatus = eventData.type === 'status';
-            setEvents(prevEvents => [...prevEvents, {
+            const newEvent = {
                 id: Date.now(),
                 ...eventData,
                 width: isStatus ? defaultStatusWidth : defaultEventWidth,
-                xPosition: isStatus ? (100 - defaultStatusWidth) : 0 // Right-align status events
-            }]);
+                xPosition: isStatus ? (100 - defaultStatusWidth) : 0
+            };
+            setEvents(prevEvents => [...prevEvents, newEvent]);
         }
         setIsModalOpen(false);
         setEditingEvent(null);

@@ -1,16 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const { setupDb, getAllEvents, replaceAllEvents } = require('./db');
 
 const app = express();
 const port = process.env.PORT || 3001;
 
-// In-memory storage for events
-let events = [];
-
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// Initialize database
+setupDb().catch(console.error);
 
 // Test endpoint
 app.get('/ping', (req, res) => {
@@ -18,12 +19,18 @@ app.get('/ping', (req, res) => {
 });
 
 // Get all events
-app.get('/events', (req, res) => {
-    res.json(events);
+app.get('/events', async (req, res) => {
+    try {
+        const events = await getAllEvents();
+        res.json(events);
+    } catch (error) {
+        console.error('Error fetching events:', error);
+        res.status(500).json({ error: 'Failed to fetch events' });
+    }
 });
 
 // Replace all events
-app.post('/events', (req, res) => {
+app.post('/events', async (req, res) => {
     const newEvents = req.body;
 
     // Validate input
@@ -33,13 +40,16 @@ app.post('/events', (req, res) => {
         });
     }
 
-    // Replace existing events with new events
-    events = newEvents;
-
-    res.json({
-        message: 'Events updated successfully',
-        count: events.length
-    });
+    try {
+        await replaceAllEvents(newEvents);
+        res.json({
+            message: 'Events updated successfully',
+            count: newEvents.length
+        });
+    } catch (error) {
+        console.error('Error saving events:', error);
+        res.status(500).json({ error: 'Failed to save events' });
+    }
 });
 
 // Start server
