@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
 
+// Common system fonts that are likely to be available
+const SYSTEM_FONTS = [
+    { name: 'System Default', value: 'system-ui' },
+    { name: 'Arial', value: 'Arial' },
+    { name: 'Helvetica', value: 'Helvetica' },
+    { name: 'Times New Roman', value: 'Times New Roman' },
+    { name: 'Georgia', value: 'Georgia' },
+    { name: 'Verdana', value: 'Verdana' },
+    { name: 'Tahoma', value: 'Tahoma' },
+    { name: 'Trebuchet MS', value: 'Trebuchet MS' },
+    { name: 'Courier New', value: 'Courier New' },
+    { name: 'Monaco', value: 'Monaco' }
+];
+
 function SettingsForm({ onSubmit, onCancel, initialSettings }) {
-    const [primaryColor, setPrimaryColor] = useState(initialSettings.primaryColor);
-    const [defaultEventWidth, setDefaultEventWidth] = useState(initialSettings.defaultEventWidth);
-    const [defaultStatusWidth, setDefaultStatusWidth] = useState(initialSettings.defaultStatusWidth);
-    const [dayStartTime, setDayStartTime] = useState(initialSettings.dayStartTime || '06:00');
-    const [dayEndTime, setDayEndTime] = useState(initialSettings.dayEndTime || '22:00');
+    const [primaryColor, setPrimaryColor] = useState(initialSettings?.primaryColor || '#3B82F6');
+    const [defaultEventWidth, setDefaultEventWidth] = useState(initialSettings?.defaultEventWidth || 80);
+    const [defaultStatusWidth, setDefaultStatusWidth] = useState(initialSettings?.defaultStatusWidth || 20);
+    const [dayStartTime, setDayStartTime] = useState(initialSettings?.dayStartTime || '06:00');
+    const [dayEndTime, setDayEndTime] = useState(initialSettings?.dayEndTime || '22:00');
+    const [selectedFont, setSelectedFont] = useState(initialSettings?.font || 'system-ui');
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -14,12 +29,35 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
             defaultEventWidth,
             defaultStatusWidth,
             dayStartTime,
-            dayEndTime
+            dayEndTime,
+            font: selectedFont
         });
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Font
+                </label>
+                <select
+                    value={selectedFont}
+                    onChange={(e) => setSelectedFont(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    style={{ fontFamily: selectedFont }}
+                >
+                    {SYSTEM_FONTS.map(font => (
+                        <option
+                            key={font.value}
+                            value={font.value}
+                            style={{ fontFamily: font.value }}
+                        >
+                            {font.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                     Primary Color
@@ -28,11 +66,8 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                     type="color"
                     value={primaryColor}
                     onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="h-10 w-20 p-1 rounded border border-gray-300"
+                    className="w-full h-10 p-1 rounded border border-gray-300"
                 />
-                <div className="mt-1 text-sm text-gray-500">
-                    This color will be used for buttons and interactive elements
-                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -100,7 +135,7 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                     </span>
                 </div>
                 <div className="mt-1 text-sm text-gray-500">
-                    Default width for new status events (10-100%), right-aligned
+                    Default width for new status events (10-100%)
                 </div>
             </div>
 
@@ -114,10 +149,9 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                 </button>
                 <button
                     type="submit"
-                    style={{ backgroundColor: primaryColor }}
-                    className="px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                    Save Changes
+                    Save Settings
                 </button>
             </div>
         </form>

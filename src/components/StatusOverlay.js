@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 function StatusOverlay({ isActive, event }) {
     const [opacity, setOpacity] = useState(0);
     const [text, setText] = useState('');
-    const fullText = 'Focus';
+    const [isBlinking, setIsBlinking] = useState(true);
+    const fullText = 'Focus.';
     const typingIntervalRef = useRef(null);
 
     useEffect(() => {
@@ -16,6 +17,7 @@ function StatusOverlay({ isActive, event }) {
             // Start fade in
             setOpacity(0);
             setTimeout(() => setOpacity(80), 50);
+            setIsBlinking(true);
 
             // Reset text and start typing animation
             setText('');
@@ -34,6 +36,8 @@ function StatusOverlay({ isActive, event }) {
                     if (typingIntervalRef.current) {
                         clearInterval(typingIntervalRef.current);
                     }
+                    // Stop blinking after 5 seconds (5 blinks at 1s per blink)
+                    setTimeout(() => setIsBlinking(false), 5000);
                 }
             }, 150);
 
@@ -45,6 +49,7 @@ function StatusOverlay({ isActive, event }) {
         } else {
             setOpacity(0);
             setText('');
+            setIsBlinking(true);
             if (typingIntervalRef.current) {
                 clearInterval(typingIntervalRef.current);
             }
@@ -62,7 +67,9 @@ function StatusOverlay({ isActive, event }) {
                 {/* Text with typing animation */}
                 <div className="text-white text-8xl font-bold tracking-wider">
                     {text}
-                    <span className="inline-block w-[4px] h-[80px] bg-white ml-2 animate-blink"></span>
+                    {isBlinking && (
+                        <span className="inline-block w-[4px] h-[80px] bg-white ml-2 animate-blink"></span>
+                    )}
                 </div>
             </div>
 
@@ -72,7 +79,7 @@ function StatusOverlay({ isActive, event }) {
                     50% { opacity: 0; }
                 }
                 .animate-blink {
-                    animation: blink 1s step-end infinite;
+                    animation: blink 1s step-end 5;
                 }
             `}</style>
         </div>

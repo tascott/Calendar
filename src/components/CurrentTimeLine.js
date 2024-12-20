@@ -29,15 +29,27 @@ function CurrentTimeLine({ settings, events = [] }) {
     }
 
     function handleEventStart(event) {
-        toast.success(`Event starting: ${event.name}`, {
+        // Skip notifications for focus events
+        // TODO: Add different triggers/actions for different event types here
+        if (event.type === 'focus') return;
+
+        toast(`Event starting: ${event.name}`, {
             duration: 5000,
             position: 'top-right',
-            icon: '🗓️'
+            icon: '🔔',
+            style: {
+                background: '#E0F2FE',
+                color: '#075985'
+            }
         });
-        setNotifiedEvents(prev => new Set([...prev, event.id]));
+        notifiedEvents.add(event.id);
     }
 
     function handleEventInProgress(event) {
+        // Skip notifications for focus events
+        // TODO: Add different triggers/actions for different event types here
+        if (event.type === 'focus') return;
+
         toast(`Event in progress: ${event.name}`, {
             duration: 5000,
             position: 'top-right',

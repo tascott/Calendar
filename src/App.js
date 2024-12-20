@@ -53,6 +53,9 @@ function App() {
     const [dayEndTime, setDayEndTime] = useState(() => {
         return localStorage.getItem('dayEndTime') || '22:00';
     });
+    const [font, setFont] = useState(() => {
+        return localStorage.getItem('font') || 'system-ui';
+    });
     const [hasActiveStatus, setHasActiveStatus] = useState(false);
 
     // Save settings to localStorage whenever they change
@@ -62,7 +65,8 @@ function App() {
         localStorage.setItem('defaultStatusWidth', defaultStatusWidth.toString());
         localStorage.setItem('dayStartTime', dayStartTime);
         localStorage.setItem('dayEndTime', dayEndTime);
-    }, [primaryColor, defaultEventWidth, defaultStatusWidth, dayStartTime, dayEndTime]);
+        localStorage.setItem('font', font);
+    }, [primaryColor, defaultEventWidth, defaultStatusWidth, dayStartTime, dayEndTime, font]);
 
     // Check for active status events
     useEffect(() => {
@@ -141,6 +145,7 @@ function App() {
         setDefaultStatusWidth(newSettings.defaultStatusWidth);
         setDayStartTime(newSettings.dayStartTime);
         setDayEndTime(newSettings.dayEndTime);
+        setFont(newSettings.font);
         setIsSettingsOpen(false);
     };
 
@@ -167,8 +172,10 @@ function App() {
 
     return (
         <DndProvider backend={HTML5Backend}>
-            <StatusOverlay isActive={hasActiveStatus} />
-            <div className="h-screen w-full flex flex-col bg-gray-100">
+            <div
+                className="h-screen w-full flex flex-col bg-gray-100"
+                style={{ fontFamily: font }}
+            >
                 {/* Header */}
                 <header className="flex-none w-full bg-white shadow-sm">
                     <div className="max-w-[1600px] w-full mx-auto px-4 py-4">
@@ -200,31 +207,29 @@ function App() {
 
                 {/* Main Content */}
                 <main className="flex-1 overflow-hidden">
-                    <DndProvider backend={HTML5Backend}>
-                        {renderView()}
-                        <StatusOverlay
-                            isActive={events.some(event => {
-                                if (event.type !== 'focus') return false;
-                                const now = new Date();
-                                const [hours, minutes] = event.startTime.split(':').map(Number);
-                                const [endHours, endMinutes] = event.endTime.split(':').map(Number);
-                                const eventStart = hours * 60 + minutes;
-                                const eventEnd = endHours * 60 + endMinutes;
-                                const currentTime = now.getHours() * 60 + now.getMinutes();
-                                return currentTime >= eventStart && currentTime < eventEnd;
-                            })}
-                            event={events.find(event => {
-                                if (event.type !== 'focus') return false;
-                                const now = new Date();
-                                const [hours, minutes] = event.startTime.split(':').map(Number);
-                                const [endHours, endMinutes] = event.endTime.split(':').map(Number);
-                                const eventStart = hours * 60 + minutes;
-                                const eventEnd = endHours * 60 + endMinutes;
-                                const currentTime = now.getHours() * 60 + now.getMinutes();
-                                return currentTime >= eventStart && currentTime < eventEnd;
-                            })}
-                        />
-                    </DndProvider>
+                    {renderView()}
+                    <StatusOverlay
+                        isActive={events.some(event => {
+                            if (event.type !== 'focus') return false;
+                            const now = new Date();
+                            const [hours, minutes] = event.startTime.split(':').map(Number);
+                            const [endHours, endMinutes] = event.endTime.split(':').map(Number);
+                            const eventStart = hours * 60 + minutes;
+                            const eventEnd = endHours * 60 + endMinutes;
+                            const currentTime = now.getHours() * 60 + now.getMinutes();
+                            return currentTime >= eventStart && currentTime < eventEnd;
+                        })}
+                        event={events.find(event => {
+                            if (event.type !== 'focus') return false;
+                            const now = new Date();
+                            const [hours, minutes] = event.startTime.split(':').map(Number);
+                            const [endHours, endMinutes] = event.endTime.split(':').map(Number);
+                            const eventStart = hours * 60 + minutes;
+                            const eventEnd = endHours * 60 + endMinutes;
+                            const currentTime = now.getHours() * 60 + now.getMinutes();
+                            return currentTime >= eventStart && currentTime < eventEnd;
+                        })}
+                    />
                 </main>
 
                 {/* Event Modal */}
@@ -260,7 +265,8 @@ function App() {
                                     defaultEventWidth,
                                     defaultStatusWidth,
                                     dayStartTime,
-                                    dayEndTime
+                                    dayEndTime,
+                                    font
                                 }}
                             />
                         </div>
