@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { TouchBackend } from 'react-dnd-touch-backend';
+import { isTouchDevice } from './utils/device';
 import DayView from './views/DayView';
 import WeekView from './views/WeekView';
 import MonthView from './views/MonthView';
@@ -57,6 +59,13 @@ function App() {
         return localStorage.getItem('font') || 'system-ui';
     });
     const [hasActiveStatus, setHasActiveStatus] = useState(false);
+
+    // Choose the appropriate backend based on device type
+    const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
+    const dndOptions = isTouchDevice() ? {
+        enableMouseEvents: true, // Allow both touch and mouse events
+        delayTouchStart: 200,    // Hold duration before drag starts (ms)
+    } : {};
 
     // Save settings to localStorage whenever they change
     useEffect(() => {
@@ -171,7 +180,7 @@ function App() {
     };
 
     return (
-        <DndProvider backend={HTML5Backend}>
+        <DndProvider backend={dndBackend} options={dndOptions}>
             <div
                 className="h-screen w-full flex flex-col bg-gray-100"
                 style={{ fontFamily: font }}
