@@ -260,8 +260,7 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
                     className="p-3 rounded-lg"
                     style={{
                         backgroundColor: formData.backgroundColor,
-                        color: formData.color,
-                        width: `${formData.width}%`
+                        color: formData.color
                     }}
                 >
                     <div className="font-medium">{formData.name || 'Event Name'}</div>
