@@ -172,8 +172,7 @@ function App() {
                     ? {
                         ...eventData,
                         id: event.id,
-                        xPosition: event.xPosition,
-                        width: event.width
+                        xPosition: event.xPosition
                     }
                     : event
             );
@@ -194,11 +193,20 @@ function App() {
     };
 
     const handleEventUpdate = (eventId, updates) => {
-        setEvents(prevEvents => prevEvents.map(event =>
+        // Create a new array with the updated event
+        const updatedEvents = events.map(event =>
             event.id === eventId
                 ? { ...event, ...updates }
                 : event
-        ));
+        );
+
+        // Only save to database if this is a final update (not during drag)
+        if (updates.justDropped || !updates.isDragging) {
+            saveEvents(updatedEvents);
+        }
+
+        // Update local state
+        setEvents(updatedEvents);
     };
 
     const handleGridDoubleClick = (time, event = null) => {

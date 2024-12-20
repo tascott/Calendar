@@ -42,10 +42,9 @@ app.post('/events', async (req, res) => {
 
     try {
         await replaceAllEvents(newEvents);
-        res.json({
-            message: 'Events updated successfully',
-            count: newEvents.length
-        });
+        // Return the actual events from the database
+        const savedEvents = await getAllEvents();
+        res.json(savedEvents);
     } catch (error) {
         console.error('Error saving events:', error);
         res.status(500).json({ error: 'Failed to save events' });

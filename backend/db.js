@@ -68,8 +68,8 @@ async function replaceAllEvents(events) {
                 event.startTime,
                 event.endTime,
                 event.type,
-                event.xPosition || 0,
-                event.width || 50,
+                event.xPosition !== undefined ? event.xPosition : 0,
+                event.width !== undefined ? event.width : 50,
                 event.backgroundColor,
                 event.color
             );
