@@ -62,9 +62,6 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
         const { name, value } = e.target;
 
         if (name === 'startTime') {
-            const [hours] = value.split(':').map(Number);
-            if (hours < 9) return;
-
             const { startTime, endTime } = validateTimes(value, formData.endTime);
             setFormData(prev => ({
                 ...prev,
@@ -165,7 +162,6 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
                         name="startTime"
                         value={formData.startTime}
                         onChange={handleChange}
-                        min="09:00"
                         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         required
                     />
