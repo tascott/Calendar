@@ -7,6 +7,7 @@ import MonthView from './views/MonthView';
 import ViewSelector from './components/ViewSelector';
 import EventForm from './components/EventForm';
 import SettingsForm from './components/SettingsForm';
+import StatusOverlay from './components/StatusOverlay';
 
 // Initial events for testing
 const initialEvents = [
@@ -20,11 +21,13 @@ const initialEvents = [
     },
     {
         id: 2,
-        name: "Lunch Break",
+        name: "Focus Time",
         date: new Date().toISOString().split('T')[0],
         startTime: "10:00",
         endTime: "12:00",
-        type: "status"
+        type: "status",
+        xPosition: 80,
+        width: 20
     }
 ];
 
@@ -50,6 +53,7 @@ function App() {
     const [dayEndTime, setDayEndTime] = useState(() => {
         return localStorage.getItem('dayEndTime') || '22:00';
     });
+    const [hasActiveStatus, setHasActiveStatus] = useState(false);
 
     // Save settings to localStorage whenever they change
     useEffect(() => {
@@ -59,6 +63,30 @@ function App() {
         localStorage.setItem('dayStartTime', dayStartTime);
         localStorage.setItem('dayEndTime', dayEndTime);
     }, [primaryColor, defaultEventWidth, defaultStatusWidth, dayStartTime, dayEndTime]);
+
+    // Check for active status events
+    useEffect(() => {
+        const checkActiveStatus = () => {
+            const now = new Date();
+            const currentTime = now.getHours() * 60 + now.getMinutes();
+            const today = now.toISOString().split('T')[0];
+
+            const hasActive = events.some(event => {
+                if (event.type !== 'status' || event.date !== today) return false;
+                const startMinutes = event.startTime.split(':').map(Number).reduce((h, m) => h * 60 + m);
+                const endMinutes = event.endTime.split(':').map(Number).reduce((h, m) => h * 60 + m);
+                return currentTime >= startMinutes && currentTime < endMinutes;
+            });
+
+            setHasActiveStatus(hasActive);
+        };
+
+        // Check immediately and set up interval
+        checkActiveStatus();
+        const interval = setInterval(checkActiveStatus, 10000); // Check every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [events]);
 
     const handleNewEvent = (eventData) => {
         if (editingEvent) {
@@ -139,6 +167,7 @@ function App() {
 
     return (
         <DndProvider backend={HTML5Backend}>
+            <StatusOverlay isActive={hasActiveStatus} />
             <div className="h-screen w-full flex flex-col bg-gray-100">
                 {/* Header */}
                 <header className="flex-none w-full bg-white shadow-sm">
@@ -170,12 +199,30 @@ function App() {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 w-full overflow-auto py-4">
-                    <div className="max-w-[1600px] w-full mx-auto px-4">
-                        <div className="bg-white rounded-lg shadow p-6">
-                            {renderView()}
-                        </div>
-                    </div>
+                <main className="flex-1 overflow-hidden">
+                    <DndProvider backend={HTML5Backend}>
+                        {renderView()}
+                        <StatusOverlay
+                            isActive={events.some(event => {
+                                const now = new Date();
+                                const [hours, minutes] = event.startTime.split(':').map(Number);
+                                const [endHours, endMinutes] = event.endTime.split(':').map(Number);
+                                const eventStart = hours * 60 + minutes;
+                                const eventEnd = endHours * 60 + endMinutes;
+                                const currentTime = now.getHours() * 60 + now.getMinutes();
+                                return currentTime >= eventStart && currentTime < eventEnd;
+                            })}
+                            event={events.find(event => {
+                                const now = new Date();
+                                const [hours, minutes] = event.startTime.split(':').map(Number);
+                                const [endHours, endMinutes] = event.endTime.split(':').map(Number);
+                                const eventStart = hours * 60 + minutes;
+                                const eventEnd = endHours * 60 + endMinutes;
+                                const currentTime = now.getHours() * 60 + now.getMinutes();
+                                return currentTime >= eventStart && currentTime < eventEnd;
+                            })}
+                        />
+                    </DndProvider>
                 </main>
 
                 {/* Event Modal */}

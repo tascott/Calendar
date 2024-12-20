@@ -149,6 +149,7 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
                 >
                     <option value="event">Event</option>
                     <option value="status">Status</option>
+                    <option value="focus">Focus</option>
                 </select>
             </div>
 
