@@ -40,6 +40,22 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
 
     const isStatus = event.type === 'status';
     const isOutOfRange = endMinutes <= visibleStartMinutes || startMinutes >= visibleEndMinutes;
+    const isPartiallyVisible = (startMinutes < visibleStartMinutes && endMinutes > visibleStartMinutes) ||
+                              (startMinutes < visibleEndMinutes && endMinutes > visibleEndMinutes);
+
+    // Calculate clipped position and height for partially visible events
+    let adjustedTop = topPercentage;
+    let adjustedHeight = heightPercentage;
+
+    if (isPartiallyVisible) {
+        if (startMinutes < visibleStartMinutes) {
+            adjustedTop = 0;
+            adjustedHeight = ((endMinutes - visibleStartMinutes) / visibleDuration) * 100;
+        }
+        if (endMinutes > visibleEndMinutes) {
+            adjustedHeight = ((visibleEndMinutes - Math.max(startMinutes, visibleStartMinutes)) / visibleDuration) * 100;
+        }
+    }
 
     const handleClick = (e) => {
         e.stopPropagation(); // Prevent grid's double-click from firing
@@ -96,8 +112,8 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                 isStatus ? 'bg-yellow-100' : 'bg-blue-100'
             } ${isDragging ? 'opacity-50' : ''}`}
             style={{
-                top: `${topPercentage}%`,
-                height: `${heightPercentage}%`,
+                top: `${adjustedTop}%`,
+                height: `${adjustedHeight}%`,
                 minHeight: '1.5rem',
                 left: `${leftPosition}%`,
                 width: `${event.width || 50}%`
@@ -201,13 +217,27 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
             const x = clientOffset.x - rect.left;
 
             // Calculate new start time and x position
-            const newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
+            let newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
             const newXPosition = calculateXPosition(x, rect, item.grabOffset, item.width, item.type === 'status');
 
-            // Update event times and position
-            const startTime = `${Math.floor(newStartMinutes / 60).toString().padStart(2, '0')}:${(newStartMinutes % 60).toString().padStart(2, '0')}`;
-            const endMinutes = newStartMinutes + item.duration;
-            const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`;
+            // Cap end time at midnight (24:00)
+            const potentialEndMinutes = newStartMinutes + item.duration;
+            if (potentialEndMinutes > 24 * 60) {
+                // Adjust start time to ensure event ends at midnight
+                newStartMinutes = (24 * 60) - item.duration;
+            }
+
+            // Format times
+            const startHours = Math.floor(newStartMinutes / 60);
+            const startMinutes = newStartMinutes % 60;
+            const endMinutes = Math.min(newStartMinutes + item.duration, 24 * 60);
+            const endHours = Math.floor(endMinutes / 60);
+            const endMins = endMinutes % 60;
+
+            const startTime = `${startHours.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`;
+            const endTime = endMinutes === 24 * 60
+                ? '24:00'
+                : `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
 
             onEventUpdate(item.id, {
                 startTime,
