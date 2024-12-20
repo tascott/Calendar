@@ -265,8 +265,9 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
             // Maximum position is 100 - width
             return Math.max(0, Math.min(snappedPercentage, 100 - eventWidth));
         } else {
-            // For regular events, keep them in the left half
-            return Math.max(0, Math.min(snappedPercentage, 50));
+            // For regular events, keep them within bounds based on their width
+            // Maximum position is 100 - width (instead of fixed 50)
+            return Math.max(0, Math.min(snappedPercentage, 100 - eventWidth));
         }
     };
 
