@@ -15,7 +15,8 @@ const EVENT_DEFAULTS = {
     focus: {
         backgroundColor: '#DCF7E3', // light green
         color: '#166534',          // dark green
-        width: 20
+        width: 100,                // Changed from 20 to 100
+        overlayText: 'focus.'      // Changed from text to overlayText
     }
 };
 
@@ -28,7 +29,8 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
         type: initialData?.type || 'event',
         backgroundColor: initialData?.backgroundColor || EVENT_DEFAULTS.event.backgroundColor,
         color: initialData?.color || EVENT_DEFAULTS.event.color,
-        width: initialData?.width || EVENT_DEFAULTS.event.width
+        width: initialData?.width || EVENT_DEFAULTS.event.width,
+        overlayText: initialData?.overlayText || EVENT_DEFAULTS.focus.overlayText // Add new field
     });
 
     // Helper function to add one hour to a time string
@@ -79,14 +81,15 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
                 endTime
             }));
         } else if (name === 'type') {
-            // Update colors and width when type changes
+            // Update colors, width, and overlay text when type changes
             const defaults = EVENT_DEFAULTS[value];
             setFormData(prev => ({
                 ...prev,
                 type: value,
                 backgroundColor: defaults.backgroundColor,
                 color: defaults.color,
-                width: defaults.width
+                width: defaults.width,
+                overlayText: value === 'focus' ? (prev.overlayText || defaults.overlayText) : prev.overlayText
             }));
         } else if (name === 'width') {
             setFormData(prev => ({
@@ -121,6 +124,23 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
                     required
                 />
             </div>
+
+            {formData.type === 'focus' && (
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Focus Overlay Message
+                    </label>
+                    <input
+                        type="text"
+                        name="overlayText"
+                        value={formData.overlayText}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                        placeholder="Text to display during focus sessions"
+                    />
+                </div>
+            )}
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -259,7 +279,9 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
                         color: formData.color
                     }}
                 >
-                    <div className="font-medium">{formData.name || 'Event Name'}</div>
+                    <div className="font-medium">
+                        {formData.name || 'Event Name'}
+                    </div>
                     <div className="text-sm">{formData.startTime} - {formData.endTime}</div>
                 </div>
             </div>

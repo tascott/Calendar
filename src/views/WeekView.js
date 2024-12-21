@@ -71,12 +71,14 @@ function WeekView({ events = [], settings }) {
     const visibleHours = Math.ceil((endMinutes - startMinutes) / 60);
     const startHour = Math.floor(startMinutes / 60);
 
-    // Group events by day
+    // Group events by day, excluding status events
     const eventsByDay = days.map((_, index) => {
         const currentDate = new Date(startOfWeek);
         currentDate.setDate(startOfWeek.getDate() + index);
         const dateString = currentDate.toISOString().split('T')[0];
-        return events.filter(event => event.date === dateString);
+        return events.filter(event =>
+            event.date === dateString && event.type !== 'status'  // Add filter for status events
+        );
     });
 
     return (

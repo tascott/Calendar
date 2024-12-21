@@ -4,7 +4,7 @@ function StatusOverlay({ isActive, event }) {
     const [opacity, setOpacity] = useState(0);
     const [text, setText] = useState('');
     const [isBlinking, setIsBlinking] = useState(true);
-    const fullText = 'Focus.';
+    const fullText = event?.overlayText || 'Focus.';
     const typingIntervalRef = useRef(null);
 
     useEffect(() => {
