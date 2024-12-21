@@ -155,17 +155,27 @@ function App() {
     const handleNewEvent = (eventData) => {
         if (editingEvent) {
             // Update existing event
-            const updatedEvents = events.map(event =>
-                event.id === editingEvent.id
-                    ? {
+            const updatedEvents = events.map(event => {
+                if (event.id === editingEvent.id) {
+                    // Calculate new position if needed
+                    let newXPosition = event.xPosition;
+
+                    // If the new width would cause overflow, adjust the position
+                    if (newXPosition + eventData.width > 100) {
+                        // Move the event left enough to fit within container
+                        newXPosition = Math.max(0, 100 - eventData.width);
+                    }
+
+                    return {
                         ...eventData,
                         id: event.id,
-                        xPosition: event.xPosition
-                    }
-                    : event
-            );
+                        xPosition: newXPosition
+                    };
+                }
+                return event;
+            });
             setEvents(updatedEvents);
-            saveEvents(updatedEvents); // Add explicit save here
+            saveEvents(updatedEvents);
         } else {
             // Create new event
             const isStatus = eventData.type === 'status';
@@ -177,7 +187,7 @@ function App() {
             };
             const newEvents = [...events, newEvent];
             setEvents(newEvents);
-            saveEvents(newEvents); // Add explicit save here
+            saveEvents(newEvents);
         }
         setIsModalOpen(false);
         setEditingEvent(null);
@@ -224,6 +234,18 @@ function App() {
                 return <DayView {...props} events={events.filter(event =>
                     event.date === new Date().toISOString().split('T')[0]
                 )} />;
+        }
+    };
+
+    const handleTerminalCommand = async () => {
+        try {
+            await run_terminal_command({
+                command: "npm install axios",
+                explanation: "Installing axios package for making HTTP requests",
+                requireUserApproval: true
+            });
+        } catch (error) {
+            console.error('Error installing axios:', error);
         }
     };
 
