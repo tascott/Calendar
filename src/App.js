@@ -14,28 +14,6 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:3001';
 
-// Initial events for testing
-const initialEvents = [
-    {
-        id: 1,
-        name: "Team Meeting",
-        date: new Date().toISOString().split('T')[0],
-        startTime: "13:00",
-        endTime: "15:30",
-        type: "event"
-    },
-    {
-        id: 2,
-        name: "Focus Time",
-        date: new Date().toISOString().split('T')[0],
-        startTime: "10:00",
-        endTime: "12:00",
-        type: "focus",
-        xPosition: 80,
-        width: 20
-    }
-];
-
 function App() {
     const [currentView, setCurrentView] = useState('day');
     const [events, setEvents] = useState([]);
@@ -231,7 +209,6 @@ function App() {
         const props = {
             onDoubleClick: handleGridDoubleClick,
             onEventUpdate: handleEventUpdate,
-            events: events.filter(event => event.date === new Date().toISOString().split('T')[0]), // Only show today's events for now
             settings: {
                 dayStartTime,
                 dayEndTime
@@ -240,11 +217,13 @@ function App() {
 
         switch (currentView) {
             case 'week':
-                return <WeekView {...props} />;
+                return <WeekView {...props} events={events} />;
             case 'month':
-                return <MonthView {...props} />;
+                return <MonthView {...props} events={events} />;
             default:
-                return <DayView {...props} />;
+                return <DayView {...props} events={events.filter(event =>
+                    event.date === new Date().toISOString().split('T')[0]
+                )} />;
         }
     };
 
