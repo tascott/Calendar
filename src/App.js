@@ -22,7 +22,7 @@ function App() {
     const [selectedTime, setSelectedTime] = useState(null);
     const [editingEvent, setEditingEvent] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState(!token);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(true);
     const [loginError, setLoginError] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
     const [primaryColor, setPrimaryColor] = useState(() => {
@@ -86,18 +86,60 @@ function App() {
         return () => clearInterval(interval);
     }, [events]);
 
-    // Using Axios
-    const fetchEvents = async () => {
-        try {
-            const response = await axios.get(`${API_URL}/events`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
+    // Create axios instance with default config
+    const axiosInstance = axios.create({
+        baseURL: API_URL,
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    // Add axios interceptor to automatically add token to all requests
+    axiosInstance.interceptors.request.use(
+        (config) => {
+            console.log('Request interceptor - Current token:', token);
+            if (token) {
+                config.headers.Authorization = `Bearer ${token}`;
+                console.log('Added token to request:', config.headers.Authorization);
+            }
+            return config;
+        },
+        (error) => {
+            console.error('Request interceptor error:', error);
+            return Promise.reject(error);
+        }
+    );
+
+    // Add axios interceptor to handle 401/403 responses
+    axiosInstance.interceptors.response.use(
+        (response) => {
+            console.log('Response interceptor - Success:', response.status);
+            return response;
+        },
+        (error) => {
+            console.error('Response interceptor - Error:', error.response?.status);
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                // Only logout if we're not already logged out
+                if (token) {
+                    console.log('Token invalid or expired - logging out');
+                    handleLogout();
                 }
-            });
+            }
+            return Promise.reject(error);
+        }
+    );
+
+    // Using Axios with interceptors
+    const fetchEvents = async () => {
+        console.log('Fetching events - Current token:', token);
+        try {
+            const response = await axiosInstance.get('/events');
+            console.log('Events fetched successfully:', response.data);
             setEvents(response.data);
         } catch (error) {
             console.error('Error fetching events:', error);
             if (error.response?.status === 401) {
+                console.log('Unauthorized - showing login modal');
                 setIsLoginModalOpen(true);
             }
         }
@@ -105,20 +147,15 @@ function App() {
 
     const saveEvents = async (newEvents) => {
         try {
-            await axios.post(`${API_URL}/events`, newEvents, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            await axiosInstance.post('/events', newEvents);
             setEvents(newEvents);
         } catch (error) {
             console.error('Error saving events:', error);
-            if (error.response?.status === 401) {
-                setIsLoginModalOpen(true);
-            }
+            // No need to check for 401 here as it's handled by interceptor
         }
     };
 
+    // Authentication handlers
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoginError('');
@@ -126,18 +163,35 @@ function App() {
         const password = e.target.password.value;
 
         try {
+            console.log('Attempting login for user:', username);
             const response = await axios.post(`${API_URL}/login`, {
                 username,
                 password
             });
+            console.log('Login response:', response.data);
             const { token: newToken } = response.data;
-            setToken(newToken);
+
+            // Update auth state
+            console.log('Setting new token:', newToken);
             localStorage.setItem('token', newToken);
+
+            // First fetch events with the new token directly
+            const eventsResponse = await axios.get(`${API_URL}/events`, {
+                headers: {
+                    Authorization: `Bearer ${newToken}`
+                }
+            });
+
+            // Only update state after successful events fetch
+            setToken(newToken);
+            setEvents(eventsResponse.data);
             setIsLoginModalOpen(false);
-            fetchEvents(); // Fetch events after successful login
         } catch (error) {
             console.error('Login error:', error);
             setLoginError(error.response?.data?.error || 'Failed to login');
+            // Clear any partial state if there was an error
+            setToken(null);
+            localStorage.removeItem('token');
         }
     };
 
@@ -148,6 +202,7 @@ function App() {
         const password = e.target.password.value;
 
         try {
+            // Use regular axios for auth endpoints
             await axios.post(`${API_URL}/register`, {
                 username,
                 password
@@ -162,15 +217,39 @@ function App() {
     };
 
     const handleLogout = () => {
+        console.log('Logging out - clearing token and state');
+        // Clear auth state
         setToken(null);
         localStorage.removeItem('token');
+
+        // Clear application state
         setEvents([]);
         setIsLoginModalOpen(true);
+
+        // Reset any other necessary state
+        setIsModalOpen(false);
+        setIsSettingsOpen(false);
+        setEditingEvent(null);
+        setSelectedTime(null);
     };
 
-    // Fetch events on component mount and when token changes
+    // Effect to initialize app with authentication
     useEffect(() => {
+        // Check for token on mount
+        const storedToken = localStorage.getItem('token');
+        console.log('Initial token from localStorage:', storedToken);
+        if (storedToken) {
+            console.log('Setting token from localStorage');
+            setToken(storedToken);
+            setIsLoginModalOpen(false);
+        }
+    }, []); // Only run on mount
+
+    // Effect to fetch events when authenticated
+    useEffect(() => {
+        console.log('Token changed:', token);
         if (token) {
+            console.log('Token present, fetching events');
             fetchEvents();
         }
     }, [token]);
@@ -377,7 +456,7 @@ function App() {
                     </div>
                 )}
 
-                {/* Login/Register Modal */}
+                {/* Login/Register Modal with improved validation */}
                 {isLoginModalOpen && (
                     <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
                         <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
@@ -396,6 +475,10 @@ function App() {
                                         type="text"
                                         name="username"
                                         required
+                                        minLength={3}
+                                        maxLength={50}
+                                        pattern="[A-Za-z0-9]*"
+                                        title="Username can only contain letters and numbers"
                                         className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
                                     />
                                 </div>
@@ -407,13 +490,17 @@ function App() {
                                         type="password"
                                         name="password"
                                         required
+                                        minLength={6}
                                         className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
                                     />
                                 </div>
                                 <div className="flex justify-between items-center pt-4">
                                     <button
                                         type="button"
-                                        onClick={() => setIsRegistering(!isRegistering)}
+                                        onClick={() => {
+                                            setIsRegistering(!isRegistering);
+                                            setLoginError(''); // Clear any previous errors
+                                        }}
                                         className="text-sm text-[#2C2C2C] hover:underline"
                                     >
                                         {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
