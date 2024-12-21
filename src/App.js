@@ -252,25 +252,24 @@ function App() {
     return (
         <DndProvider backend={dndBackend} options={dndOptions}>
             <div
-                className="h-screen w-full flex flex-col bg-gray-100"
+                className="min-h-screen w-full flex flex-col bg-[#F6F5F1]"
                 style={{ fontFamily: font }}
             >
                 {/* Header */}
-                <header className="flex-none w-full bg-white shadow-sm">
-                    <div className="max-w-[1600px] w-full mx-auto px-4 py-4">
-                        <div className="flex justify-between items-center mb-4">
-                            <h1 className="text-2xl font-semibold text-gray-800">My Calendar</h1>
-                            <div className="flex space-x-2">
+                <header className="flex-none w-full bg-[#F6F5F1] border-b border-[#D3D1C7]">
+                    <div className="max-w-[1600px] w-full mx-auto px-8 py-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h1 className="text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
+                            <div className="flex space-x-4">
                                 <button
                                     onClick={() => setIsSettingsOpen(true)}
-                                    className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
                                 >
                                     Settings
                                 </button>
                                 <button
                                     onClick={() => handleGridDoubleClick(null)}
-                                    style={{ backgroundColor: primaryColor }}
-                                    className="px-4 py-2 text-sm font-medium text-white rounded-md hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                    className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
                                 >
                                     New Event
                                 </button>
@@ -279,7 +278,7 @@ function App() {
                         <ViewSelector
                             currentView={currentView}
                             onViewChange={setCurrentView}
-                            primaryColor={primaryColor}
+                            primaryColor="#2C2C2C"
                         />
                     </div>
                 </header>
@@ -287,35 +286,13 @@ function App() {
                 {/* Main Content */}
                 <main className="flex-1 overflow-hidden">
                     {renderView()}
-                    <StatusOverlay
-                        isActive={events.some(event => {
-                            if (event.type !== 'focus') return false;
-                            const now = new Date();
-                            const [hours, minutes] = event.startTime.split(':').map(Number);
-                            const [endHours, endMinutes] = event.endTime.split(':').map(Number);
-                            const eventStart = hours * 60 + minutes;
-                            const eventEnd = endHours * 60 + endMinutes;
-                            const currentTime = now.getHours() * 60 + now.getMinutes();
-                            return currentTime >= eventStart && currentTime < eventEnd;
-                        })}
-                        event={events.find(event => {
-                            if (event.type !== 'focus') return false;
-                            const now = new Date();
-                            const [hours, minutes] = event.startTime.split(':').map(Number);
-                            const [endHours, endMinutes] = event.endTime.split(':').map(Number);
-                            const eventStart = hours * 60 + minutes;
-                            const eventEnd = endHours * 60 + endMinutes;
-                            const currentTime = now.getHours() * 60 + now.getMinutes();
-                            return currentTime >= eventStart && currentTime < eventEnd;
-                        })}
-                    />
                 </main>
 
-                {/* Event Modal */}
+                {/* Modals with vintage styling */}
                 {isModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
                                 {editingEvent ? 'Edit Event' : 'New Event'}
                             </h2>
                             <EventForm
@@ -331,21 +308,21 @@ function App() {
 
                 {/* Settings Modal */}
                 {isSettingsOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                        <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
                                 Settings
                             </h2>
                             <SettingsForm
                                 onSubmit={handleSettingsSave}
                                 onCancel={() => setIsSettingsOpen(false)}
                                 initialSettings={{
-                                    primaryColor,
+                                    primaryColor: '#2C2C2C',
                                     defaultEventWidth,
                                     defaultStatusWidth,
                                     dayStartTime,
                                     dayEndTime,
-                                    font
+                                    font: 'Georgia'
                                 }}
                             />
                         </div>

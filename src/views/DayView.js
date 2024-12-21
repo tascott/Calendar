@@ -164,7 +164,7 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className={`absolute rounded-lg p-2 select-none transition-all duration-150 ${
+            className={`absolute rounded-[1px] p-2 select-none transition-all duration-150 border border-[#D3D1C7] ${
                 isDragging ? 'opacity-50 scale-105' : 'hover:opacity-90'
             } ${isLongPress ? 'cursor-move scale-105 shadow-lg' : 'cursor-pointer'} ${
                 isTouched ? 'ring-2 ring-blue-400' : ''

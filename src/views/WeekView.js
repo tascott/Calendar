@@ -28,7 +28,7 @@ function WeekEvent({ event, settings }) {
 
     return (
         <div
-            className={`absolute rounded-lg p-1 ${
+            className={`absolute rounded-[1px] p-1 border border-[#D3D1C7] ${
                 isStatus ? 'bg-yellow-100' : 'bg-blue-100'
             }`}
             style={{

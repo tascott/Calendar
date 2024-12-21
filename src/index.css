@@ -11,11 +11,40 @@
 
 /* Set global font and background styles */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Georgia', serif;
     font-size: 16px;
-    background-color: #f5f5f5;
-    color: #333;
+    background-color: #F6F5F1;  /* Warm off-white */
+    color: #2C2C2C;  /* Soft black */
     line-height: 1.5;
+}
+
+/* Add some vintage-inspired utility classes */
+.vintage-border {
+    border: 1px solid #D3D1C7;
+}
+
+.vintage-shadow {
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.1);
+}
+
+/* Vintage-inspired button styles */
+.btn-vintage {
+    background-color: #F6F5F1;
+    border: 1px solid #2C2C2C;
+    color: #2C2C2C;
+    padding: 0.5rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.btn-vintage:hover {
+    background-color: #2C2C2C;
+    color: #F6F5F1;
+}
+
+/* Grid lines */
+.vintage-grid {
+    background-image: linear-gradient(#D3D1C7 1px, transparent 1px);
+    background-size: 100% 3rem;
 }
 
 /* Center the app content */
@@ -23,5 +52,6 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
+    background-color: #F6F5F1;
 }
