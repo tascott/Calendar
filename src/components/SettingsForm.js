@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Common system fonts that are likely to be available
 const SYSTEM_FONTS = [
@@ -15,43 +15,55 @@ const SYSTEM_FONTS = [
 ];
 
 function SettingsForm({ onSubmit, onCancel, initialSettings }) {
-    const [primaryColor, setPrimaryColor] = useState(initialSettings?.primaryColor || '#3B82F6');
-    const [defaultEventWidth, setDefaultEventWidth] = useState(initialSettings?.defaultEventWidth || 80);
-    const [defaultStatusWidth, setDefaultStatusWidth] = useState(initialSettings?.defaultStatusWidth || 20);
-    const [dayStartTime, setDayStartTime] = useState(initialSettings?.dayStartTime || '06:00');
-    const [dayEndTime, setDayEndTime] = useState(initialSettings?.dayEndTime || '22:00');
-    const [selectedFont, setSelectedFont] = useState(initialSettings?.font || 'system-ui');
+    const [formData, setFormData] = useState({
+        primaryColor: initialSettings?.primaryColor || '#2C2C2C',
+        defaultEventWidth: initialSettings?.defaultEventWidth || 80,
+        defaultStatusWidth: initialSettings?.defaultStatusWidth || 20,
+        dayStartTime: initialSettings?.dayStartTime || '06:00',
+        dayEndTime: initialSettings?.dayEndTime || '22:00',
+        font: initialSettings?.font || 'system-ui'
+    });
+
+    // Update form data when initialSettings changes
+    useEffect(() => {
+        setFormData({
+            primaryColor: initialSettings?.primaryColor || '#2C2C2C',
+            defaultEventWidth: initialSettings?.defaultEventWidth || 80,
+            defaultStatusWidth: initialSettings?.defaultStatusWidth || 20,
+            dayStartTime: initialSettings?.dayStartTime || '06:00',
+            dayEndTime: initialSettings?.dayEndTime || '22:00',
+            font: initialSettings?.font || 'system-ui'
+        });
+    }, [initialSettings]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        onSubmit({
-            primaryColor,
-            defaultEventWidth,
-            defaultStatusWidth,
-            dayStartTime,
-            dayEndTime,
-            font: selectedFont
-        });
+        onSubmit(formData);
+    };
+
+    const handleChange = (e) => {
+        const newFormData = {
+            ...formData,
+            [e.target.name]: e.target.value
+        };
+        setFormData(newFormData);
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
             <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
                     Font
                 </label>
                 <select
-                    value={selectedFont}
-                    onChange={(e) => setSelectedFont(e.target.value)}
-                    className="w-full px-3 py-2 border border-[#D3D1C7] bg-[#F6F5F1] text-[#2C2C2C] shadow-sm focus:outline-none focus:border-[#2C2C2C]"
-                    style={{ fontFamily: selectedFont }}
+                    name="font"
+                    value={formData.font}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-[#2C2C2C] bg-[#F6F5F1] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C]"
+                    style={{ fontFamily: formData.font }}
                 >
                     {SYSTEM_FONTS.map(font => (
-                        <option
-                            key={font.value}
-                            value={font.value}
-                            style={{ fontFamily: font.value }}
-                        >
+                        <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
                             {font.name}
                         </option>
                     ))}
@@ -64,9 +76,10 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                 </label>
                 <input
                     type="color"
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="w-full h-10 p-1 border border-[#D3D1C7] bg-[#F6F5F1]"
+                    name="primaryColor"
+                    value={formData.primaryColor}
+                    onChange={handleChange}
+                    className="w-full h-10 p-1 border border-[#2C2C2C] bg-[#F6F5F1] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C]"
                 />
             </div>
 
@@ -77,9 +90,10 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                     </label>
                     <input
                         type="time"
-                        value={dayStartTime}
-                        onChange={(e) => setDayStartTime(e.target.value)}
-                        className="w-full px-3 py-2 border border-[#D3D1C7] bg-[#F6F5F1] text-[#2C2C2C]"
+                        name="dayStartTime"
+                        value={formData.dayStartTime}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-[#2C2C2C] bg-[#F6F5F1] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C]"
                     />
                 </div>
                 <div>
@@ -88,9 +102,10 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                     </label>
                     <input
                         type="time"
-                        value={dayEndTime}
-                        onChange={(e) => setDayEndTime(e.target.value)}
-                        className="w-full px-3 py-2 border border-[#D3D1C7] bg-[#F6F5F1] text-[#2C2C2C]"
+                        name="dayEndTime"
+                        value={formData.dayEndTime}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-[#2C2C2C] bg-[#F6F5F1] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C]"
                     />
                 </div>
             </div>
@@ -104,12 +119,13 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                         type="range"
                         min="10"
                         max="100"
-                        value={defaultEventWidth}
-                        onChange={(e) => setDefaultEventWidth(parseInt(e.target.value, 10))}
+                        name="defaultEventWidth"
+                        value={formData.defaultEventWidth}
+                        onChange={handleChange}
                         className="flex-1"
                     />
                     <span className="text-sm text-[#2C2C2C] w-12">
-                        {defaultEventWidth}%
+                        {formData.defaultEventWidth}%
                     </span>
                 </div>
                 <div className="mt-1 text-sm text-[#2C2C2C]/70">
@@ -126,12 +142,13 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                         type="range"
                         min="10"
                         max="100"
-                        value={defaultStatusWidth}
-                        onChange={(e) => setDefaultStatusWidth(parseInt(e.target.value, 10))}
+                        name="defaultStatusWidth"
+                        value={formData.defaultStatusWidth}
+                        onChange={handleChange}
                         className="flex-1"
                     />
                     <span className="text-sm text-[#2C2C2C] w-12">
-                        {defaultStatusWidth}%
+                        {formData.defaultStatusWidth}%
                     </span>
                 </div>
                 <div className="mt-1 text-sm text-[#2C2C2C]/70">

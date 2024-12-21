@@ -22,15 +22,37 @@ const EVENT_DEFAULTS = {
 
 function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }) {
     // Parse recurringDays from initialData if it exists
-    const parseRecurringDays = (data) => {
-        if (!data) return {};
+    const getInitialRecurringDays = () => {
+        const defaultDays = {
+            monday: false,
+            tuesday: false,
+            wednesday: false,
+            thursday: false,
+            friday: false,
+            saturday: false,
+            sunday: false
+        };
+
+        if (!initialData?.recurringDays) return defaultDays;
+
         try {
-            return typeof data.recurringDays === 'string'
-                ? JSON.parse(data.recurringDays)
-                : data.recurringDays || {};
-        } catch (error) {
-            console.error('Error parsing recurringDays:', error);
-            return {};
+            // If it's a string, try to parse it
+            if (typeof initialData.recurringDays === 'string') {
+                const parsed = JSON.parse(initialData.recurringDays);
+                // Ensure we have boolean values
+                return Object.keys(defaultDays).reduce((acc, day) => {
+                    acc[day] = Boolean(parsed[day]);
+                    return acc;
+                }, {...defaultDays});
+            }
+            // If it's already an object, ensure we have boolean values
+            return Object.keys(defaultDays).reduce((acc, day) => {
+                acc[day] = Boolean(initialData.recurringDays[day]);
+                return acc;
+            }, {...defaultDays});
+        } catch (e) {
+            console.error('Error parsing recurringDays:', e);
+            return defaultDays;
         }
     };
 
@@ -45,7 +67,7 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
         width: initialData?.width || EVENT_DEFAULTS.event.width,
         overlayText: initialData?.overlayText || EVENT_DEFAULTS.focus.overlayText,
         recurring: initialData?.recurring || 'none',
-        recurringDays: parseRecurringDays(initialData),
+        recurringDays: getInitialRecurringDays(),
         recurringEventId: initialData?.recurringEventId || null
     });
 

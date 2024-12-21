@@ -25,26 +25,16 @@ function App() {
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(true);
     const [loginError, setLoginError] = useState('');
     const [isRegistering, setIsRegistering] = useState(false);
-    const [primaryColor, setPrimaryColor] = useState(() => {
-        return localStorage.getItem('primaryColor') || '#3B82F6';
-    });
-    const [defaultEventWidth, setDefaultEventWidth] = useState(() => {
-        return parseInt(localStorage.getItem('defaultEventWidth') || '80', 10);
-    });
-    const [defaultStatusWidth, setDefaultStatusWidth] = useState(() => {
-        return parseInt(localStorage.getItem('defaultStatusWidth') || '20', 10);
-    });
-    const [dayStartTime, setDayStartTime] = useState(() => {
-        return localStorage.getItem('dayStartTime') || '06:00';
-    });
-    const [dayEndTime, setDayEndTime] = useState(() => {
-        return localStorage.getItem('dayEndTime') || '22:00';
-    });
-    const [font, setFont] = useState(() => {
-        return localStorage.getItem('font') || 'system-ui';
-    });
-    const [hasActiveStatus, setHasActiveStatus] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [hasActiveStatus, setHasActiveStatus] = useState(false);
+    const [settings, setSettings] = useState({
+        primaryColor: '#2C2C2C',
+        defaultEventWidth: 80,
+        defaultStatusWidth: 20,
+        dayStartTime: '06:00',
+        dayEndTime: '22:00',
+        font: 'system-ui'
+    });
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -53,15 +43,36 @@ function App() {
         delayTouchStart: 200,    // Hold duration before drag starts (ms)
     } : {};
 
-    // Save settings to localStorage whenever they change
+    // Load settings from backend
+    const loadSettings = async () => {
+        try {
+            if (token) {
+                console.log('[Settings] Attempting to fetch settings');
+                const response = await axiosInstance.get('/settings');
+                console.log('[Settings] Fetch successful:', response.data);
+                setSettings(response.data);
+            }
+        } catch (error) {
+            console.error('[Settings] Fetch failed:', error.response?.status, error.response?.data);
+        }
+    };
+
+    // Effect to initialize app with authentication and settings
     useEffect(() => {
-        localStorage.setItem('primaryColor', primaryColor);
-        localStorage.setItem('defaultEventWidth', defaultEventWidth.toString());
-        localStorage.setItem('defaultStatusWidth', defaultStatusWidth.toString());
-        localStorage.setItem('dayStartTime', dayStartTime);
-        localStorage.setItem('dayEndTime', dayEndTime);
-        localStorage.setItem('font', font);
-    }, [primaryColor, defaultEventWidth, defaultStatusWidth, dayStartTime, dayEndTime, font]);
+        // Check for token on mount
+        const storedToken = localStorage.getItem('token');
+        if (storedToken) {
+            setToken(storedToken);
+            setIsLoginModalOpen(false);
+        }
+    }, []); // Only run on mount
+
+    // Effect to load settings when token changes
+    useEffect(() => {
+        if (token) {
+            loadSettings();
+        }
+    }, [token]);
 
     // Check for active status events
     useEffect(() => {
@@ -98,15 +109,16 @@ function App() {
     // Add axios interceptor to automatically add token to all requests
     axiosInstance.interceptors.request.use(
         (config) => {
-            console.log('Request interceptor - Current token:', token);
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
-                console.log('Added token to request:', config.headers.Authorization);
+                console.log('[Request] Endpoint:', config.url, 'Headers:', config.headers);
+            } else {
+                console.log('[Request] No token available for:', config.url);
             }
             return config;
         },
         (error) => {
-            console.error('Request interceptor error:', error);
+            console.error('[Request Error]', error);
             return Promise.reject(error);
         }
     );
@@ -114,15 +126,19 @@ function App() {
     // Add axios interceptor to handle 401/403 responses
     axiosInstance.interceptors.response.use(
         (response) => {
-            console.log('Response interceptor - Success:', response.status);
+            console.log('[Response] Success:', response.config.url, response.status);
             return response;
         },
         (error) => {
-            console.error('Response interceptor - Error:', error.response?.status);
+            console.error(
+                '[Response Error]',
+                'URL:', error.config?.url,
+                'Status:', error.response?.status,
+                'Message:', error.response?.data?.error
+            );
             if (error.response?.status === 401 || error.response?.status === 403) {
-                // Only logout if we're not already logged out
                 if (token) {
-                    console.log('Token invalid or expired - logging out');
+                    console.log('[Auth] Token invalid - logging out');
                     handleLogout();
                 }
             }
@@ -132,15 +148,15 @@ function App() {
 
     // Using Axios with interceptors
     const fetchEvents = async () => {
-        console.log('Fetching events - Current token:', token);
+        console.log('[Events] Attempting to fetch events');
         try {
             const response = await axiosInstance.get('/events');
-            console.log('Events fetched successfully:', response.data);
+            console.log('[Events] Fetch successful, count:', response.data.length);
             setEvents(response.data);
         } catch (error) {
-            console.error('Error fetching events:', error);
+            console.error('[Events] Fetch failed:', error.response?.status, error.response?.data);
             if (error.response?.status === 401) {
-                console.log('Unauthorized - showing login modal');
+                console.log('[Events] Unauthorized - showing login modal');
                 setIsLoginModalOpen(true);
             }
         }
@@ -164,33 +180,34 @@ function App() {
         const password = e.target.password.value;
 
         try {
-            console.log('Attempting login for user:', username);
+            console.log('[Login] Attempting login for:', username);
             const response = await axios.post(`${API_URL}/login`, {
                 username,
                 password
             });
-            console.log('Login response:', response.data);
             const { token: newToken } = response.data;
+            console.log('[Login] Success - token received');
 
             // Update auth state
-            console.log('Setting new token:', newToken);
             localStorage.setItem('token', newToken);
-
-            // First fetch events with the new token directly
-            const eventsResponse = await axios.get(`${API_URL}/events`, {
-                headers: {
-                    Authorization: `Bearer ${newToken}`
-                }
-            });
-
-            // Only update state after successful events fetch
             setToken(newToken);
-            setEvents(eventsResponse.data);
-            setIsLoginModalOpen(false);
+
+            // Fetch initial data
+            try {
+                console.log('[Login] Fetching initial events');
+                const eventsResponse = await axios.get(`${API_URL}/events`, {
+                    headers: { Authorization: `Bearer ${newToken}` }
+                });
+                console.log('[Login] Events fetched successfully');
+                setEvents(eventsResponse.data);
+                setIsLoginModalOpen(false);
+            } catch (error) {
+                console.error('[Login] Failed to fetch initial events:', error.response?.status);
+                throw error; // Re-throw to be caught by outer catch
+            }
         } catch (error) {
-            console.error('Login error:', error);
+            console.error('[Login] Failed:', error.response?.data?.error);
             setLoginError(error.response?.data?.error || 'Failed to login');
-            // Clear any partial state if there was an error
             setToken(null);
             localStorage.removeItem('token');
         }
@@ -234,24 +251,13 @@ function App() {
         setSelectedTime(null);
     };
 
-    // Effect to initialize app with authentication
-    useEffect(() => {
-        // Check for token on mount
-        const storedToken = localStorage.getItem('token');
-        console.log('Initial token from localStorage:', storedToken);
-        if (storedToken) {
-            console.log('Setting token from localStorage');
-            setToken(storedToken);
-            setIsLoginModalOpen(false);
-        }
-    }, []); // Only run on mount
-
     // Effect to fetch events when authenticated
     useEffect(() => {
-        console.log('Token changed:', token);
         if (token) {
-            console.log('Token present, fetching events');
+            console.log('[Auth] Token present, fetching events');
             fetchEvents();
+        } else {
+            console.log('[Auth] No token available');
         }
     }, [token]);
 
@@ -337,8 +343,8 @@ function App() {
             const isStatus = processedEventData.type === 'status';
             const baseEvent = {
                 ...processedEventData,
-                width: isStatus ? defaultStatusWidth : defaultEventWidth,
-                xPosition: isStatus ? (100 - defaultStatusWidth) : 0
+                width: isStatus ? settings.defaultStatusWidth : settings.defaultEventWidth,
+                xPosition: isStatus ? (100 - settings.defaultStatusWidth) : 0
             };
 
             // For daily recurring events, create an event for each selected day
@@ -398,14 +404,16 @@ function App() {
         setSelectedTime(null);
     };
 
-    const handleSettingsSave = (newSettings) => {
-        setPrimaryColor(newSettings.primaryColor);
-        setDefaultEventWidth(newSettings.defaultEventWidth);
-        setDefaultStatusWidth(newSettings.defaultStatusWidth);
-        setDayStartTime(newSettings.dayStartTime);
-        setDayEndTime(newSettings.dayEndTime);
-        setFont(newSettings.font);
-        setIsSettingsOpen(false);
+    const handleSettingsSave = async (newSettings) => {
+        try {
+            console.log('[Settings] Attempting to save settings:', newSettings);
+            const response = await axiosInstance.post('/settings', newSettings);
+            console.log('[Settings] Save successful:', response.data);
+            setSettings(response.data);
+            setIsSettingsOpen(false);
+        } catch (error) {
+            console.error('[Settings] Save failed:', error.response?.status, error.response?.data);
+        }
     };
 
     const handleNavigate = (newDate) => {
@@ -420,8 +428,8 @@ function App() {
             currentDate,
             onNavigate: handleNavigate,
             settings: {
-                dayStartTime,
-                dayEndTime
+                dayStartTime: settings.dayStartTime,
+                dayEndTime: settings.dayEndTime
             }
         };
 
@@ -451,7 +459,7 @@ function App() {
         <DndProvider backend={dndBackend} options={dndOptions}>
             <div
                 className="min-h-screen w-full flex flex-col bg-[#F6F5F1]"
-                style={{ fontFamily: font }}
+                style={{ fontFamily: settings.font }}
             >
                 {/* Header */}
                 <header className="flex-none w-full bg-[#F6F5F1] border-b border-[#D3D1C7]">
@@ -461,20 +469,44 @@ function App() {
                             <div className="flex space-x-4">
                                 <button
                                     onClick={() => setIsSettingsOpen(true)}
-                                    className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
+                                    className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
+                                    style={{
+                                        color: settings.primaryColor,
+                                        borderColor: settings.primaryColor,
+                                        ':hover': {
+                                            backgroundColor: settings.primaryColor,
+                                            color: '#F6F5F1'
+                                        }
+                                    }}
                                 >
                                     Settings
                                 </button>
                                 <button
                                     onClick={() => handleGridDoubleClick(null)}
-                                    className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
+                                    className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
+                                    style={{
+                                        color: settings.primaryColor,
+                                        borderColor: settings.primaryColor,
+                                        ':hover': {
+                                            backgroundColor: settings.primaryColor,
+                                            color: '#F6F5F1'
+                                        }
+                                    }}
                                 >
                                     New Event
                                 </button>
                                 {token && (
                                     <button
                                         onClick={handleLogout}
-                                        className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
+                                        className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
+                                        style={{
+                                            color: settings.primaryColor,
+                                            borderColor: settings.primaryColor,
+                                            ':hover': {
+                                                backgroundColor: settings.primaryColor,
+                                                color: '#F6F5F1'
+                                            }
+                                        }}
                                     >
                                         Logout
                                     </button>
@@ -484,7 +516,7 @@ function App() {
                         <ViewSelector
                             currentView={currentView}
                             onViewChange={setCurrentView}
-                            primaryColor="#2C2C2C"
+                            primaryColor={settings.primaryColor}
                         />
                     </div>
                 </header>
@@ -522,14 +554,7 @@ function App() {
                             <SettingsForm
                                 onSubmit={handleSettingsSave}
                                 onCancel={() => setIsSettingsOpen(false)}
-                                initialSettings={{
-                                    primaryColor: '#2C2C2C',
-                                    defaultEventWidth,
-                                    defaultStatusWidth,
-                                    dayStartTime,
-                                    dayEndTime,
-                                    font: 'Georgia'
-                                }}
+                                initialSettings={settings}
                             />
                         </div>
                     </div>

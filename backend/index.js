@@ -3,7 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser } = require('./db');
+const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings } = require('./db');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -92,30 +92,63 @@ app.post('/login', async (req, res) => {
 // Protected event endpoints
 app.get('/events', authenticateToken, async (req, res) => {
     try {
+        console.log('[Backend] Getting events for user:', req.user.id);
         const events = await getAllEvents(req.user.id);
+        console.log('[Backend] Raw events from database:', events);
+        console.log('[Backend] Sending events to frontend, count:', events.length);
         res.json(events);
     } catch (error) {
-        console.error('Error fetching events:', error);
+        console.error('[Backend] Error fetching events:', error);
         res.status(500).json({ error: 'Failed to fetch events' });
     }
 });
 
 app.post('/events', authenticateToken, async (req, res) => {
     const newEvents = req.body;
+    console.log('[Backend] Received events to save:', newEvents);
 
     if (!Array.isArray(newEvents)) {
+        console.log('[Backend] Invalid input: not an array');
         return res.status(400).json({
             error: 'Invalid input: expected an array of events'
         });
     }
 
     try {
+        console.log('[Backend] Saving events for user:', req.user.id);
         await replaceAllEvents(req.user.id, newEvents);
         const savedEvents = await getAllEvents(req.user.id);
+        console.log('[Backend] Events saved and retrieved:', savedEvents.length);
         res.json(savedEvents);
     } catch (error) {
-        console.error('Error saving events:', error);
+        console.error('[Backend] Error saving events:', error);
         res.status(500).json({ error: 'Failed to save events' });
+    }
+});
+
+// Protected settings endpoints
+app.get('/settings', authenticateToken, async (req, res) => {
+    try {
+        console.log('[Backend] Getting settings for user:', req.user.id);
+        const settings = await getSettings(req.user.id);
+        console.log('[Backend] Settings retrieved:', settings);
+        res.json(settings);
+    } catch (error) {
+        console.error('[Backend] Error fetching settings:', error);
+        res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+});
+
+app.post('/settings', authenticateToken, async (req, res) => {
+    try {
+        console.log('[Backend] Saving settings for user:', req.user.id);
+        console.log('[Backend] New settings:', req.body);
+        const settings = await updateSettings(req.user.id, req.body);
+        console.log('[Backend] Settings saved:', settings);
+        res.json(settings);
+    } catch (error) {
+        console.error('[Backend] Error saving settings:', error);
+        res.status(500).json({ error: 'Failed to save settings' });
     }
 });
 
