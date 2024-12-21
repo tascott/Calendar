@@ -21,6 +21,10 @@ function App() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedTime, setSelectedTime] = useState(null);
     const [editingEvent, setEditingEvent] = useState(null);
+    const [token, setToken] = useState(localStorage.getItem('token'));
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(!token);
+    const [loginError, setLoginError] = useState('');
+    const [isRegistering, setIsRegistering] = useState(false);
     const [primaryColor, setPrimaryColor] = useState(() => {
         return localStorage.getItem('primaryColor') || '#3B82F6';
     });
@@ -85,55 +89,91 @@ function App() {
     // Using Axios
     const fetchEvents = async () => {
         try {
-            const response = await axios.get(`${API_URL}/events`);
+            const response = await axios.get(`${API_URL}/events`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             setEvents(response.data);
         } catch (error) {
             console.error('Error fetching events:', error);
+            if (error.response?.status === 401) {
+                setIsLoginModalOpen(true);
+            }
         }
     };
 
     const saveEvents = async (newEvents) => {
         try {
-            await axios.post(`${API_URL}/events`, newEvents);
-            setEvents(newEvents);
-        } catch (error) {
-            console.error('Error saving events:', error);
-        }
-    };
-
-    /* Using Fetch API (Alternative Implementation)
-    const fetchEvents = async () => {
-        try {
-            const response = await fetch(`${API_URL}/events`);
-            if (!response.ok) throw new Error('Network response was not ok');
-            const data = await response.json();
-            setEvents(data);
-        } catch (error) {
-            console.error('Error fetching events:', error);
-        }
-    };
-
-    const saveEvents = async (newEvents) => {
-        try {
-            const response = await fetch(`${API_URL}/events`, {
-                method: 'POST',
+            await axios.post(`${API_URL}/events`, newEvents, {
                 headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(newEvents)
+                    'Authorization': `Bearer ${token}`
+                }
             });
-            if (!response.ok) throw new Error('Network response was not ok');
             setEvents(newEvents);
         } catch (error) {
             console.error('Error saving events:', error);
+            if (error.response?.status === 401) {
+                setIsLoginModalOpen(true);
+            }
         }
     };
-    */
 
-    // Fetch events on component mount
+    const handleLogin = async (e) => {
+        e.preventDefault();
+        setLoginError('');
+        const username = e.target.username.value;
+        const password = e.target.password.value;
+
+        try {
+            const response = await axios.post(`${API_URL}/login`, {
+                username,
+                password
+            });
+            const { token: newToken } = response.data;
+            setToken(newToken);
+            localStorage.setItem('token', newToken);
+            setIsLoginModalOpen(false);
+            fetchEvents(); // Fetch events after successful login
+        } catch (error) {
+            console.error('Login error:', error);
+            setLoginError(error.response?.data?.error || 'Failed to login');
+        }
+    };
+
+    const handleRegister = async (e) => {
+        e.preventDefault();
+        setLoginError('');
+        const username = e.target.username.value;
+        const password = e.target.password.value;
+
+        try {
+            await axios.post(`${API_URL}/register`, {
+                username,
+                password
+            });
+            // After successful registration, switch back to login
+            setIsRegistering(false);
+            setLoginError('Registration successful! Please login.');
+        } catch (error) {
+            console.error('Registration error:', error);
+            setLoginError(error.response?.data?.error || 'Failed to register');
+        }
+    };
+
+    const handleLogout = () => {
+        setToken(null);
+        localStorage.removeItem('token');
+        setEvents([]);
+        setIsLoginModalOpen(true);
+    };
+
+    // Fetch events on component mount and when token changes
     useEffect(() => {
-        fetchEvents();
-    }, []);
+        if (token) {
+            fetchEvents();
+        }
+    }, [token]);
 
     const handleEventUpdate = (eventId, updates) => {
         // Create a new array with the updated event
@@ -273,6 +313,14 @@ function App() {
                                 >
                                     New Event
                                 </button>
+                                {token && (
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
+                                    >
+                                        Logout
+                                    </button>
+                                )}
                             </div>
                         </div>
                         <ViewSelector
@@ -325,6 +373,59 @@ function App() {
                                     font: 'Georgia'
                                 }}
                             />
+                        </div>
+                    </div>
+                )}
+
+                {/* Login/Register Modal */}
+                {isLoginModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
+                                {isRegistering ? 'Register' : 'Login'}
+                            </h2>
+                            <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
+                                {loginError && (
+                                    <div className="text-red-600 text-sm mb-4">{loginError}</div>
+                                )}
+                                <div>
+                                    <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
+                                        Username
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        required
+                                        className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
+                                        Password
+                                    </label>
+                                    <input
+                                        type="password"
+                                        name="password"
+                                        required
+                                        className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsRegistering(!isRegistering)}
+                                        className="text-sm text-[#2C2C2C] hover:underline"
+                                    >
+                                        {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
+                                    >
+                                        {isRegistering ? 'Register' : 'Login'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )}
