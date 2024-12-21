@@ -44,6 +44,7 @@ function App() {
         return localStorage.getItem('font') || 'system-ui';
     });
     const [hasActiveStatus, setHasActiveStatus] = useState(false);
+    const [currentDate, setCurrentDate] = useState(new Date());
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -255,6 +256,18 @@ function App() {
     }, [token]);
 
     const handleEventUpdate = (eventId, updates) => {
+        // If this is a deletion (updates.deleted is true), handle recurring events
+        if (updates.deleted) {
+            const eventToDelete = events.find(e => e.id === eventId);
+            if (eventToDelete?.recurringEventId) {
+                // Delete all events in the recurring series
+                const updatedEvents = events.filter(e => e.recurringEventId !== eventToDelete.recurringEventId);
+                saveEvents(updatedEvents);
+                setEvents(updatedEvents);
+                return;
+            }
+        }
+
         // Create a new array with the updated event
         const updatedEvents = events.map(event =>
             event.id === eventId
@@ -272,21 +285,45 @@ function App() {
     };
 
     const handleNewEvent = (eventData) => {
+        // Ensure recurringDays is properly stringified and handle recurring property
+        const processedEventData = {
+            ...eventData,
+            // Only include recurring properties if the event is actually recurring
+            ...(eventData.recurring === 'none' ? {
+                recurring: 'none',
+                recurringDays: '{}',
+                recurringEventId: null
+            } : {
+                recurring: eventData.recurring,
+                recurringDays: typeof eventData.recurringDays === 'string'
+                    ? eventData.recurringDays
+                    : JSON.stringify(eventData.recurringDays || {}),
+                recurringEventId: eventData.recurringEventId || `recurring-${Date.now()}`
+            })
+        };
+
         if (editingEvent) {
             // Update existing event
             const updatedEvents = events.map(event => {
-                if (event.id === editingEvent.id) {
-                    // Calculate new position if needed
+                // If this is a recurring event, update all events in the series
+                if (editingEvent.recurringEventId && event.recurringEventId === editingEvent.recurringEventId) {
                     let newXPosition = event.xPosition;
-
-                    // If the new width would cause overflow, adjust the position
-                    if (newXPosition + eventData.width > 100) {
-                        // Move the event left enough to fit within container
-                        newXPosition = Math.max(0, 100 - eventData.width);
+                    if (newXPosition + processedEventData.width > 100) {
+                        newXPosition = Math.max(0, 100 - processedEventData.width);
                     }
-
                     return {
-                        ...eventData,
+                        ...processedEventData,
+                        id: event.id,
+                        date: event.date, // Keep original date for each instance
+                        xPosition: newXPosition
+                    };
+                } else if (event.id === editingEvent.id) {
+                    let newXPosition = event.xPosition;
+                    if (newXPosition + processedEventData.width > 100) {
+                        newXPosition = Math.max(0, 100 - processedEventData.width);
+                    }
+                    return {
+                        ...processedEventData,
                         id: event.id,
                         xPosition: newXPosition
                     };
@@ -297,16 +334,47 @@ function App() {
             saveEvents(updatedEvents);
         } else {
             // Create new event
-            const isStatus = eventData.type === 'status';
-            const newEvent = {
-                id: Date.now(),
-                ...eventData,
+            const isStatus = processedEventData.type === 'status';
+            const baseEvent = {
+                ...processedEventData,
                 width: isStatus ? defaultStatusWidth : defaultEventWidth,
                 xPosition: isStatus ? (100 - defaultStatusWidth) : 0
             };
-            const newEvents = [...events, newEvent];
-            setEvents(newEvents);
-            saveEvents(newEvents);
+
+            // For daily recurring events, create an event for each selected day
+            let newEvents = [];
+            if (processedEventData.recurring === 'daily') {
+                const recurringDays = JSON.parse(processedEventData.recurringDays);
+                const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const startDate = new Date(processedEventData.date);
+
+                // Create events for the next 3 months
+                for (let i = 0; i < 90; i++) {
+                    const currentDate = new Date(startDate);
+                    currentDate.setDate(startDate.getDate() + i);
+                    const dayName = daysOfWeek[currentDate.getDay()];
+
+                    if (recurringDays[dayName]) {
+                        newEvents.push({
+                            ...baseEvent,
+                            id: Date.now() + i,
+                            date: currentDate.toISOString().split('T')[0]
+                        });
+                    }
+                }
+            } else {
+                newEvents = [{
+                    ...baseEvent,
+                    id: Date.now(),
+                    recurring: 'none',
+                    recurringDays: '{}',
+                    recurringEventId: null
+                }];
+            }
+
+            const updatedEvents = [...events, ...newEvents];
+            setEvents(updatedEvents);
+            saveEvents(updatedEvents);
         }
         setIsModalOpen(false);
         setEditingEvent(null);
@@ -334,10 +402,16 @@ function App() {
         setIsSettingsOpen(false);
     };
 
+    const handleNavigate = (newDate) => {
+        setCurrentDate(newDate);
+    };
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
             onEventUpdate: handleEventUpdate,
+            currentDate,
+            onNavigate: handleNavigate,
             settings: {
                 dayStartTime,
                 dayEndTime
@@ -350,9 +424,7 @@ function App() {
             case 'month':
                 return <MonthView {...props} events={events} />;
             default:
-                return <DayView {...props} events={events.filter(event =>
-                    event.date === new Date().toISOString().split('T')[0]
-                )} />;
+                return <DayView {...props} events={events} />;
         }
     };
 

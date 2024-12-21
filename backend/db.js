@@ -34,6 +34,8 @@ async function setupDb() {
             width INTEGER DEFAULT 50,
             backgroundColor TEXT,
             color TEXT,
+            recurring TEXT DEFAULT 'none',
+            recurringDays TEXT DEFAULT '{}',
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     `);
@@ -50,10 +52,86 @@ async function getDb() {
     return dbInstance;
 }
 
+// Helper function to generate recurring event instances
+function generateRecurringInstances(event, startDate, endDate) {
+    const instances = [];
+    const recurringDays = JSON.parse(event.recurringDays || '{}');
+
+    // If not recurring or no days selected for daily recurring, return original event
+    if (event.recurring === 'none' ||
+        (event.recurring === 'daily' && Object.values(recurringDays).every(day => !day))) {
+        return [event];
+    }
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const eventDate = new Date(event.date);
+
+    // Generate instances for 3 months from the event date
+    const maxDate = new Date(eventDate);
+    maxDate.setMonth(maxDate.getMonth() + 3);
+
+    // Don't generate instances beyond the max date
+    if (end > maxDate) {
+        end.setTime(maxDate.getTime());
+    }
+
+    let currentDate = new Date(Math.max(start.getTime(), eventDate.getTime()));
+
+    while (currentDate <= end) {
+        if (event.recurring === 'daily') {
+            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'lowercase' });
+            if (recurringDays[dayName]) {
+                instances.push({
+                    ...event,
+                    date: currentDate.toISOString().split('T')[0],
+                    isRecurring: true,
+                    originalDate: event.date
+                });
+            }
+        } else if (event.recurring === 'weekly') {
+            if (currentDate.getDay() === eventDate.getDay()) {
+                instances.push({
+                    ...event,
+                    date: currentDate.toISOString().split('T')[0],
+                    isRecurring: true,
+                    originalDate: event.date
+                });
+            }
+        } else if (event.recurring === 'monthly') {
+            if (currentDate.getDate() === eventDate.getDate()) {
+                instances.push({
+                    ...event,
+                    date: currentDate.toISOString().split('T')[0],
+                    isRecurring: true,
+                    originalDate: event.date
+                });
+            }
+        }
+
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return instances;
+}
+
 // Database operations
 async function getAllEvents(userId) {
     const db = await getDb();
-    return db.all('SELECT * FROM events WHERE user_id = ?', [userId]);
+    const events = await db.all('SELECT * FROM events WHERE user_id = ?', [userId]);
+
+    // Calculate date range (current month +/- 1 month)
+    const today = new Date();
+    const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const endDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+
+    // Generate recurring instances for each event
+    const allInstances = events.flatMap(event =>
+        generateRecurringInstances(event, startDate, endDate)
+    );
+
+    return allInstances;
 }
 
 async function replaceAllEvents(userId, events) {
@@ -65,8 +143,11 @@ async function replaceAllEvents(userId, events) {
         await db.run('DELETE FROM events WHERE user_id = ?', [userId]);
 
         const stmt = await db.prepare(`
-            INSERT INTO events (user_id, id, name, date, startTime, endTime, type, xPosition, width, backgroundColor, color)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO events (
+                user_id, id, name, date, startTime, endTime, type,
+                xPosition, width, backgroundColor, color, recurring, recurringDays
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
         for (const event of events) {
@@ -81,7 +162,9 @@ async function replaceAllEvents(userId, events) {
                 event.xPosition !== undefined ? event.xPosition : 0,
                 event.width !== undefined ? event.width : 50,
                 event.backgroundColor,
-                event.color
+                event.color,
+                event.recurring || 'none',
+                JSON.stringify(event.recurringDays || {})
             );
         }
 

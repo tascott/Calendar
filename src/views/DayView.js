@@ -3,6 +3,7 @@ import { useDrag, useDrop } from 'react-dnd';
 import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
 import CurrentTimeLine from '../components/CurrentTimeLine';
+import CalendarNavigation from '../components/CalendarNavigation';
 import { Toaster } from 'react-hot-toast';
 
 const DRAG_TYPE = 'event';
@@ -31,6 +32,7 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
     const startMinutes = timeToMinutes(event.startTime);
     const endMinutes = timeToMinutes(event.endTime);
     const duration = endMinutes - startMinutes;
+    const isShortEvent = duration < 45; // Check if event is less than 45 minutes
 
     // Get visible time range
     const visibleStartMinutes = timeToMinutes(settings?.dayStartTime || '00:00');
@@ -164,7 +166,7 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            className={`absolute rounded-[1px] p-2 select-none transition-all duration-150 border border-[#D3D1C7] ${
+            className={`absolute rounded-[1px] select-none transition-all duration-150 border border-[#D3D1C7] ${
                 isDragging ? 'opacity-50 scale-105' : 'hover:opacity-90'
             } ${isLongPress ? 'cursor-move scale-105 shadow-lg' : 'cursor-pointer'} ${
                 isTouched ? 'ring-2 ring-blue-400' : ''
@@ -179,7 +181,8 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                 color: event.color || (event.type === 'status' ? '#92400E' : '#1E40AF'),
                 touchAction: 'none',
                 transform: isLongPress ? 'scale(1.05)' : 'none',
-                boxShadow: isLongPress ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : 'none'
+                boxShadow: isLongPress ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' : 'none',
+                padding: isShortEvent ? '0.25rem 0.5rem' : '0.5rem'
             }}
         >
             {isLongPress && (
@@ -187,11 +190,28 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                     Ready to drag
                 </div>
             )}
-            <div className="text-sm font-medium">
-                {event.name}
-            </div>
-            <div className="text-xs">
-                {event.startTime} - {event.endTime}
+            <div className="flex items-start space-x-1">
+                {event.recurring && (
+                    <svg className="w-3 h-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                    </svg>
+                )}
+                <div className="flex-1">
+                    {isShortEvent ? (
+                        <div className="text-sm truncate">
+                            {event.name} ({event.startTime} - {event.endTime})
+                        </div>
+                    ) : (
+                        <>
+                            <div className="text-sm font-medium truncate">
+                                {event.name}
+                            </div>
+                            <div className="text-xs truncate">
+                                {event.startTime} - {event.endTime}
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -211,8 +231,44 @@ function OutOfRangeIndicator({ position, count }) {
     );
 }
 
-function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
+function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentDate = new Date(), onNavigate }) {
     const gridRef = useRef(null);
+
+    // Filter events for the current day and include recurring events
+    const currentDateStr = currentDate.toISOString().split('T')[0];
+    const filteredEvents = events.filter(event => {
+        // Check if it's the original event date
+        if (event.date === currentDateStr) return true;
+
+        // Handle recurring events
+        if (!event.recurring || event.recurring === 'none') return false;
+
+        const eventDate = new Date(event.date);
+        let recurringDays;
+        try {
+            recurringDays = typeof event.recurringDays === 'string'
+                ? JSON.parse(event.recurringDays)
+                : event.recurringDays || {};
+        } catch (error) {
+            console.error('Error parsing recurringDays:', error);
+            return false;
+        }
+
+        if (event.recurring === 'daily') {
+            const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+            return recurringDays[dayName];
+        }
+
+        if (event.recurring === 'weekly') {
+            return currentDate.getDay() === eventDate.getDay();
+        }
+
+        if (event.recurring === 'monthly') {
+            return currentDate.getDate() === eventDate.getDate();
+        }
+
+        return false;
+    });
 
     const snapToNearestFifteen = (minutes) => {
         return Math.round(minutes / 15) * 15;
@@ -234,7 +290,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
     const startHour = Math.floor(startMinutes / 60);
 
     // Group events into visible and out-of-range
-    const { visibleEvents, beforeRange, afterRange } = events.reduce((acc, event) => {
+    const { visibleEvents, beforeRange, afterRange } = filteredEvents.reduce((acc, event) => {
         const eventStart = timeToMinutes(event.startTime);
         const eventEnd = timeToMinutes(event.endTime);
 
@@ -359,66 +415,73 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings }) {
     };
 
     return (
-        <div className="flex w-full pt-4">
-            <TimeColumn startHour={startHour} numHours={visibleHours} />
-            <div
-                ref={drop}
-                className="relative flex-1"
-                onDoubleClick={handleGridDoubleClick}
-                style={{
-                    display: 'grid',
-                    gridTemplateRows: `repeat(${visibleHours}, 3rem)`
-                }}
-            >
-                {/* Out of range indicators */}
-                {beforeRange.length > 0 && (
-                    <OutOfRangeIndicator position="top" count={beforeRange.length} />
-                )}
-                {afterRange.length > 0 && (
-                    <OutOfRangeIndicator position="bottom" count={afterRange.length} />
-                )}
+        <div className="flex flex-col w-full">
+            <CalendarNavigation
+                viewType="day"
+                currentDate={currentDate}
+                onNavigate={onNavigate}
+            />
+            <div className="flex w-full pt-4">
+                <TimeColumn startHour={startHour} numHours={visibleHours} />
+                <div
+                    ref={drop}
+                    className="relative flex-1"
+                    onDoubleClick={handleGridDoubleClick}
+                    style={{
+                        display: 'grid',
+                        gridTemplateRows: `repeat(${visibleHours}, 3rem)`
+                    }}
+                >
+                    {/* Out of range indicators */}
+                    {beforeRange.length > 0 && (
+                        <OutOfRangeIndicator position="top" count={beforeRange.length} />
+                    )}
+                    {afterRange.length > 0 && (
+                        <OutOfRangeIndicator position="bottom" count={afterRange.length} />
+                    )}
 
-                {/* Snap guides */}
-                {SNAP_INCREMENTS.map(position => (
-                    <div
-                        key={position}
-                        className={`absolute top-0 bottom-0 w-px ${
-                            position === 50 ? 'bg-gray-300' : 'bg-gray-200'
-                        } pointer-events-none`}
-                        style={{ left: `${position}%` }}
-                    />
-                ))}
-
-                {/* Horizontal hour lines */}
-                {Array.from({ length: visibleHours + 1 }, (_, i) => (
-                    <div
-                        key={i}
-                        className={`border-t border-gray-200 relative ${i === visibleHours ? 'border-b border-gray-200' : ''}`}
-                    >
-                        {i < visibleHours && (
-                            <div className="absolute top-1/2 w-full border-t border-gray-100" />
-                        )}
-                    </div>
-                ))}
-
-                {/* Events */}
-                <div ref={gridRef} className="absolute inset-0">
-                    {visibleEvents.map(event => (
-                        <EventBlock
-                            key={event.id}
-                            event={event}
-                            onClick={handleEventClick}
-                            onUpdate={onEventUpdate}
-                            settings={settings}
+                    {/* Snap guides */}
+                    {SNAP_INCREMENTS.map(position => (
+                        <div
+                            key={position}
+                            className={`absolute top-0 bottom-0 w-px ${
+                                position === 50 ? 'bg-gray-300' : 'bg-gray-200'
+                            } pointer-events-none`}
+                            style={{ left: `${position}%` }}
                         />
                     ))}
+
+                    {/* Horizontal hour lines */}
+                    {Array.from({ length: visibleHours + 1 }, (_, i) => (
+                        <div
+                            key={i}
+                            className={`border-t border-gray-200 relative ${i === visibleHours ? 'border-b border-gray-200' : ''}`}
+                        >
+                            {i < visibleHours && (
+                                <div className="absolute top-1/2 w-full border-t border-gray-100" />
+                            )}
+                        </div>
+                    ))}
+
+                    {/* Events */}
+                    <div ref={gridRef} className="absolute inset-0">
+                        {visibleEvents.map(event => (
+                            <EventBlock
+                                key={event.id}
+                                event={event}
+                                onClick={handleEventClick}
+                                onUpdate={onEventUpdate}
+                                settings={settings}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Current time line */}
+                    <CurrentTimeLine events={events} settings={settings} />
+
+                    {/* Toast container */}
+                    <Toaster />
                 </div>
-
-                {/* Current time line */}
-                <CurrentTimeLine events={events} settings={settings} />
-
-                {/* Toast container */}
-                <Toaster />
             </div>
         </div>
     );
