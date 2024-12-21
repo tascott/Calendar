@@ -21,57 +21,76 @@ const EVENT_DEFAULTS = {
 };
 
 function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }) {
+    // Parse recurringDays from initialData if it exists
+    const parseRecurringDays = (data) => {
+        if (!data) return {};
+        try {
+            return typeof data.recurringDays === 'string'
+                ? JSON.parse(data.recurringDays)
+                : data.recurringDays || {};
+        } catch (error) {
+            console.error('Error parsing recurringDays:', error);
+            return {};
+        }
+    };
+
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         date: initialData?.date || initialDate,
         startTime: initialData?.startTime || initialTime || '09:00',
-        endTime: initialData?.endTime || (initialTime ? addHalfHour(initialTime) : '09:30'),
+        endTime: initialData?.endTime || (initialTime && addHalfHour(initialTime)) || '09:30',
         type: initialData?.type || 'event',
         backgroundColor: initialData?.backgroundColor || EVENT_DEFAULTS.event.backgroundColor,
         color: initialData?.color || EVENT_DEFAULTS.event.color,
         width: initialData?.width || EVENT_DEFAULTS.event.width,
         overlayText: initialData?.overlayText || EVENT_DEFAULTS.focus.overlayText,
         recurring: initialData?.recurring || 'none',
-        recurringDays: initialData?.recurringDays || {
-            monday: false,
-            tuesday: false,
-            wednesday: false,
-            thursday: false,
-            friday: false,
-            saturday: false,
-            sunday: false
-        },
+        recurringDays: parseRecurringDays(initialData),
         recurringEventId: initialData?.recurringEventId || null
     });
 
     // Helper function to add 30 minutes to a time string
     function addHalfHour(timeStr) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        const totalMinutes = hours * 60 + minutes + 30;
-        const newHours = Math.floor(totalMinutes / 60);
-        const newMinutes = totalMinutes % 60;
-        return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+        if (!timeStr || typeof timeStr !== 'string') return '09:30';
+        try {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const totalMinutes = hours * 60 + minutes + 30;
+            const newHours = Math.floor(totalMinutes / 60);
+            const newMinutes = totalMinutes % 60;
+            return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+        } catch (error) {
+            console.error('Error processing time:', error);
+            return '09:30';
+        }
     }
 
     // Helper function to validate and adjust times
     function validateTimes(newStartTime, newEndTime) {
-        const [startHours, startMinutes] = newStartTime.split(':').map(Number);
-        const [endHours, endMinutes] = newEndTime.split(':').map(Number);
-        const startInMinutes = startHours * 60 + startMinutes;
-        const endInMinutes = endHours * 60 + endMinutes;
+        try {
+            const [startHours, startMinutes] = newStartTime.split(':').map(Number);
+            const [endHours, endMinutes] = newEndTime.split(':').map(Number);
+            const startInMinutes = startHours * 60 + startMinutes;
+            const endInMinutes = endHours * 60 + endMinutes;
 
-        // Ensure minimum 30-minute duration
-        if (endInMinutes < startInMinutes + 30) {
+            // Ensure minimum 30-minute duration
+            if (endInMinutes < startInMinutes + 30) {
+                return {
+                    startTime: newStartTime,
+                    endTime: addHalfHour(newStartTime)
+                };
+            }
+
             return {
                 startTime: newStartTime,
-                endTime: addHalfHour(newStartTime)
+                endTime: newEndTime
+            };
+        } catch (error) {
+            console.error('Error validating times:', error);
+            return {
+                startTime: '09:00',
+                endTime: '09:30'
             };
         }
-
-        return {
-            startTime: newStartTime,
-            endTime: newEndTime
-        };
     }
 
     const handleChange = (e) => {

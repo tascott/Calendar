@@ -5,7 +5,7 @@ import GridOverlay from '../components/GridOverlay';
 import CurrentTimeLine from '../components/CurrentTimeLine';
 import CalendarNavigation from '../components/CalendarNavigation';
 
-function WeekEvent({ event, settings }) {
+function WeekEvent({ event, settings, onEventClick }) {
     // Convert time string to minutes since start of day
     const timeToMinutes = (timeStr) => {
         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -31,7 +31,8 @@ function WeekEvent({ event, settings }) {
 
     return (
         <div
-            className={`absolute rounded-[1px] border border-[#D3D1C7] ${
+            onClick={() => onEventClick(event.startTime, event)}
+            className={`absolute rounded-[1px] border border-[#D3D1C7] cursor-pointer hover:opacity-75 ${
                 isStatus ? 'bg-yellow-100' : 'bg-blue-100'
             }`}
             style={{
@@ -73,7 +74,7 @@ function WeekEvent({ event, settings }) {
     );
 }
 
-function WeekView({ events = [], settings, currentDate = new Date(), onNavigate }) {
+function WeekView({ events = [], settings, currentDate = new Date(), onNavigate, onEventClick }) {
     // Change days array to start with Monday
     const days = [];
     const startOfWeek = new Date(currentDate);
@@ -187,6 +188,7 @@ function WeekView({ events = [], settings, currentDate = new Date(), onNavigate 
                                             key={event.id}
                                             event={event}
                                             settings={settings}
+                                            onEventClick={onEventClick}
                                         />
                                     ))}
                                 </div>

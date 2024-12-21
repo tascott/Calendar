@@ -1,13 +1,14 @@
 import React from 'react';
 import CalendarNavigation from '../components/CalendarNavigation';
 
-function MonthEvent({ event }) {
+function MonthEvent({ event, onEventClick }) {
     // Don't render status events
     if (event.type === 'status') return null;
 
     return (
         <div
-            className="text-xs p-1 rounded-[1px] truncate border border-[#D3D1C7]"
+            onClick={() => onEventClick(event.startTime, event)}
+            className="text-xs p-1 rounded-[1px] truncate border border-[#D3D1C7] cursor-pointer hover:opacity-75"
             style={{
                 backgroundColor: event.backgroundColor || '#DBEAFE',
                 color: event.color || '#1E40AF'
@@ -27,7 +28,7 @@ function MonthEvent({ event }) {
     );
 }
 
-function MonthView({ events = [], settings, currentDate = new Date(), onNavigate }) {
+function MonthView({ events = [], settings, currentDate = new Date(), onNavigate, onEventClick }) {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
@@ -133,6 +134,7 @@ function MonthView({ events = [], settings, currentDate = new Date(), onNavigate
                                                 <MonthEvent
                                                     key={`${event.id}-${index}`}
                                                     event={event}
+                                                    onEventClick={onEventClick}
                                                 />
                                             ))}
                                         </div>

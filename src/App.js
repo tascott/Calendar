@@ -380,8 +380,14 @@ function App() {
         setEditingEvent(null);
     };
 
-    const handleGridDoubleClick = (time, event = null) => {
-        setSelectedTime(time);
+    const handleGridDoubleClick = (time, event = null, options = {}) => {
+        // If we have an event object, use its start time
+        const initialTime = event ? event.startTime : (time || '09:00');
+
+        // If we have x position from options (for day view), use it
+        const xPosition = options?.xPosition;
+
+        setSelectedTime(initialTime);
         setEditingEvent(event);
         setIsModalOpen(true);
     };
@@ -409,6 +415,7 @@ function App() {
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
+            onEventClick: handleGridDoubleClick,
             onEventUpdate: handleEventUpdate,
             currentDate,
             onNavigate: handleNavigate,
