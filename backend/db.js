@@ -85,46 +85,22 @@ async function getDb() {
 
 // Helper function to generate recurring event instances
 function generateRecurringInstances(event, startDate, endDate) {
-    console.log('[Recurring] Event:', {
-        id: event.id,
-        name: event.name,
-        recurring: event.recurring,
-        recurringDays: event.recurringDays
-    });
-
     // If recurring is undefined, null, false, or 'none', return original event without isRecurring flag
     if (!event.recurring || event.recurring === 'none' || event.recurring === false) {
-        console.log('[Recurring] Not a recurring event');
-        const nonRecurringEvent = {
+        return [{
             ...event,
             isRecurring: false,
             recurring: 'none',
             recurringDays: '{}'
-        };
-        console.log('[Recurring] Returning non-recurring event:', {
-            id: nonRecurringEvent.id,
-            isRecurring: nonRecurringEvent.isRecurring,
-            recurring: nonRecurringEvent.recurring
-        });
-        return [nonRecurringEvent];
+        }];
     }
 
     const instances = [];
     let recurringDays;
     try {
-        // Handle both string and object formats
-        if (typeof event.recurringDays === 'string') {
-            try {
-                recurringDays = JSON.parse(event.recurringDays);
-            } catch (e) {
-                console.log('[Recurring] Failed to parse recurringDays string:', event.recurringDays);
-                recurringDays = {};
-            }
-        } else {
-            recurringDays = event.recurringDays || {};
-        }
-
-        console.log('[Recurring] Parsed recurring days:', recurringDays);
+        recurringDays = typeof event.recurringDays === 'string'
+            ? JSON.parse(event.recurringDays)
+            : event.recurringDays || {};
     } catch (error) {
         console.log('[Recurring] Error parsing recurringDays, treating as non-recurring');
         return [{
@@ -137,7 +113,6 @@ function generateRecurringInstances(event, startDate, endDate) {
 
     // If no days selected for daily recurring, return as non-recurring
     if (event.recurring === 'daily' && Object.values(recurringDays).every(day => !day)) {
-        console.log('[Recurring] Daily event with no days selected, treating as non-recurring');
         return [{
             ...event,
             isRecurring: false,
@@ -150,11 +125,9 @@ function generateRecurringInstances(event, startDate, endDate) {
     const end = new Date(endDate);
     const eventDate = new Date(event.date);
 
-    // Generate instances for 3 months from the event date
+    // Limit end date to 1 year from event date
     const maxDate = new Date(eventDate);
-    maxDate.setMonth(maxDate.getMonth() + 3);
-
-    // Don't generate instances beyond the max date
+    maxDate.setFullYear(maxDate.getFullYear() + 1);
     if (end > maxDate) {
         end.setTime(maxDate.getTime());
     }
@@ -178,10 +151,13 @@ function generateRecurringInstances(event, startDate, endDate) {
         }
 
         if (shouldAdd) {
+            const instanceDate = currentDate.toISOString().split('T')[0];
             instances.push({
                 ...event,
-                date: currentDate.toISOString().split('T')[0],
+                id: Date.now() + Math.floor(Math.random() * 1000), // Generate unique ID for each instance
+                date: instanceDate,
                 isRecurring: true,
+                originalEventId: event.id,
                 originalDate: event.date
             });
         }
@@ -190,7 +166,12 @@ function generateRecurringInstances(event, startDate, endDate) {
         currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    console.log('[Recurring] Generated', instances.length, 'instances');
+    // Always include the original event
+    instances.unshift({
+        ...event,
+        isRecurring: true
+    });
+
     return instances;
 }
 

@@ -183,9 +183,9 @@ function WeekView({ events = [], settings, currentDate = new Date(), onNavigate,
                                             style={{ top: `${i * 60}px`, height: '60px' }}
                                         />
                                     ))}
-                                    {eventsForDay(day).map((event) => (
+                                    {eventsForDay(day).map((event, index) => (
                                         <WeekEvent
-                                            key={event.id}
+                                            key={`${event.originalEventId || event.id}-${event.date}-${index}`}
                                             event={event}
                                             settings={settings}
                                             onEventClick={onEventClick}

@@ -362,22 +362,24 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
 
             // Store the current position in the item for the drop handler
             item.currentPosition = {
+                id: item.id,
                 startTime,
                 endTime,
                 xPosition: newXPosition,
-                width: item.width,
-                isDragging: true
+                isDragging: true,
+                isVisualOnly: true  // Flag to indicate this is just for visual update
             };
 
+            // Update visual position only
             onEventUpdate(item.id, item.currentPosition);
         },
         drop: (item) => {
-            // On drop, trigger a final update with the stored position
             if (item.currentPosition) {
+                // On final drop, send update without visual-only flag
+                const { isVisualOnly, ...finalPosition } = item.currentPosition;
                 onEventUpdate(item.id, {
-                    ...item.currentPosition,
-                    isDragging: false,
-                    justDropped: true // Add a flag to indicate this is a final drop
+                    ...finalPosition,
+                    isDragging: false
                 });
             }
         }
@@ -465,9 +467,9 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
 
                     {/* Events */}
                     <div ref={gridRef} className="absolute inset-0">
-                        {visibleEvents.map(event => (
+                        {visibleEvents.map((event, index) => (
                             <EventBlock
-                                key={event.id}
+                                key={`${event.originalEventId || event.id}-${event.date}-${index}`}
                                 event={event}
                                 onClick={handleEventClick}
                                 onUpdate={onEventUpdate}

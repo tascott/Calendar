@@ -132,7 +132,7 @@ function MonthView({ events = [], settings, currentDate = new Date(), onNavigate
                                         <div className="space-y-1 overflow-y-auto max-h-24">
                                             {dayEvents.map((event, index) => (
                                                 <MonthEvent
-                                                    key={`${event.id}-${index}`}
+                                                    key={`${event.originalEventId || event.id}-${event.date}-${index}`}
                                                     event={event}
                                                     onEventClick={onEventClick}
                                                 />
