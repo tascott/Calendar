@@ -3,7 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings } = require('./db');
+const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent } = require('./db');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -116,10 +116,28 @@ app.post('/events', authenticateToken, async (req, res) => {
 
     try {
         console.log('[Backend] Saving events for user:', req.user.id);
-        await replaceAllEvents(req.user.id, newEvents);
-        const savedEvents = await getAllEvents(req.user.id);
-        console.log('[Backend] Events saved and retrieved:', savedEvents.length);
-        res.json(savedEvents);
+        const db = await getDb();
+
+        // Start a transaction for multiple updates
+        await db.exec('BEGIN TRANSACTION');
+
+        try {
+            for (const event of newEvents) {
+                await saveEvent(req.user.id, event);
+            }
+
+            // Commit the transaction
+            await db.exec('COMMIT');
+
+            // Fetch and return updated events
+            const savedEvents = await getAllEvents(req.user.id);
+            console.log('[Backend] Events saved and retrieved:', savedEvents.length);
+            res.json(savedEvents);
+        } catch (error) {
+            // Rollback on error
+            await db.exec('ROLLBACK');
+            throw error;
+        }
     } catch (error) {
         console.error('[Backend] Error saving events:', error);
         res.status(500).json({ error: 'Failed to save events' });

@@ -164,11 +164,46 @@ function App() {
 
     const saveEvents = async (newEvents) => {
         try {
-            await axiosInstance.post('/events', newEvents);
-            setEvents(newEvents);
+            // If it's a single event, wrap it in an array
+            const eventsToSave = Array.isArray(newEvents) ? newEvents : [newEvents];
+
+            // Only send essential data to the server
+            const optimizedEvents = eventsToSave.map(event => {
+                // Start with basic required fields
+                const optimizedEvent = {
+                    id: event.id,
+                    name: event.name,
+                    date: event.date,
+                    startTime: event.startTime,
+                    endTime: event.endTime,
+                    type: event.type
+                };
+
+                // Only add optional fields if they exist and are not default values
+                if (event.xPosition !== undefined && event.xPosition !== 0) optimizedEvent.xPosition = event.xPosition;
+                if (event.width !== undefined && event.width !== 50) optimizedEvent.width = event.width;
+                if (event.backgroundColor) optimizedEvent.backgroundColor = event.backgroundColor;
+                if (event.color) optimizedEvent.color = event.color;
+                if (event.recurring && event.recurring !== 'none') {
+                    optimizedEvent.recurring = event.recurring;
+                    optimizedEvent.recurringDays = typeof event.recurringDays === 'string'
+                        ? event.recurringDays
+                        : JSON.stringify(event.recurringDays || {});
+                    optimizedEvent.recurringEventId = event.recurringEventId;
+                }
+
+                return optimizedEvent;
+            });
+
+            console.log('[Events] Saving optimized events:', optimizedEvents);
+            const response = await axiosInstance.post('/events', optimizedEvents);
+            console.log('[Events] Save successful, updating state with response:', response.data);
+            setEvents(response.data);
         } catch (error) {
-            console.error('Error saving events:', error);
-            // No need to check for 401 here as it's handled by interceptor
+            console.error('[Events] Error saving events:', error);
+            if (error.response?.status === 413) {
+                console.error('[Events] Payload too large, data:', error.response?.data);
+            }
         }
     };
 
@@ -283,7 +318,10 @@ function App() {
 
         // Only save to database if this is a final update (not during drag)
         if (updates.justDropped || !updates.isDragging) {
-            saveEvents(updatedEvents);
+            const updatedEvent = updatedEvents.find(e => e.id === eventId);
+            if (updatedEvent) {
+                saveEvents(updatedEvent); // Only save the updated event
+            }
         }
 
         // Update local state
@@ -328,16 +366,18 @@ function App() {
                     if (newXPosition + processedEventData.width > 100) {
                         newXPosition = Math.max(0, 100 - processedEventData.width);
                     }
-                    return {
+                    const updatedEvent = {
                         ...processedEventData,
                         id: event.id,
                         xPosition: newXPosition
                     };
+                    // Save only the updated event
+                    saveEvents(updatedEvent);
+                    return updatedEvent;
                 }
                 return event;
             });
             setEvents(updatedEvents);
-            saveEvents(updatedEvents);
         } else {
             // Create new event
             const isStatus = processedEventData.type === 'status';
@@ -378,9 +418,9 @@ function App() {
                 }];
             }
 
-            const updatedEvents = [...events, ...newEvents];
-            setEvents(updatedEvents);
-            saveEvents(updatedEvents);
+            // Save only the new events
+            saveEvents(newEvents);
+            setEvents([...events, ...newEvents]);
         }
         setIsModalOpen(false);
         setEditingEvent(null);

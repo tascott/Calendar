@@ -1,86 +1,223 @@
 const sqlite3 = require('sqlite3');
 const { open } = require('sqlite');
-const path = require('path');
+let db = null;
 
-// Database setup
-async function setupDb() {
-    const dbPath = path.resolve(__dirname, 'events.db');
-    console.log('[Database] Opening database at:', dbPath);
+async function getDb() {
+    if (db) return db;
 
-    // Open database
-    const db = await open({
-        filename: dbPath,
+    db = await open({
+        filename: 'calendar.db',
         driver: sqlite3.Database
     });
-    console.log('[Database] Successfully opened database');
-
-    // Create users table
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    `);
-    console.log('[Database] Users table ready');
-
-    // Create events table with user_id foreign key
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS events (
-            id INTEGER PRIMARY KEY,
-            user_id INTEGER NOT NULL,
-            name TEXT NOT NULL,
-            date TEXT NOT NULL,
-            startTime TEXT NOT NULL,
-            endTime TEXT NOT NULL,
-            type TEXT NOT NULL,
-            xPosition INTEGER DEFAULT 0,
-            width INTEGER DEFAULT 50,
-            backgroundColor TEXT,
-            color TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    `);
-    console.log('[Database] Events table ready');
-
-    // Add recurring columns if they don't exist
-    try {
-        await db.exec(`
-            ALTER TABLE events ADD COLUMN recurring TEXT DEFAULT 'none';
-            ALTER TABLE events ADD COLUMN recurringDays TEXT DEFAULT '{}';
-        `);
-        console.log('[Database] Added recurring columns to events table');
-    } catch (error) {
-        // Columns might already exist, which is fine
-        console.log('[Database] Recurring columns already exist or error:', error.message);
-    }
-
-    // Create settings table
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS settings (
-            user_id INTEGER PRIMARY KEY,
-            primaryColor TEXT DEFAULT '#2C2C2C',
-            defaultEventWidth INTEGER DEFAULT 80,
-            defaultStatusWidth INTEGER DEFAULT 20,
-            dayStartTime TEXT DEFAULT '06:00',
-            dayEndTime TEXT DEFAULT '22:00',
-            font TEXT DEFAULT 'system-ui',
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    `);
-    console.log('[Database] Settings table ready');
-
     return db;
 }
 
-// Get database instance
-let dbInstance = null;
-async function getDb() {
-    if (!dbInstance) {
-        dbInstance = await setupDb();
+async function setupDb() {
+    const db = await getDb();
+
+    try {
+        // Check if the events table exists
+        const tableExists = await db.get(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='events'"
+        );
+
+        if (!tableExists) {
+            // Create events table if it doesn't exist
+            await db.exec(`
+                CREATE TABLE events (
+                    user_id INTEGER NOT NULL,
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    startTime TEXT NOT NULL,
+                    endTime TEXT NOT NULL,
+                    type TEXT,
+                    xPosition REAL DEFAULT 0,
+                    width REAL DEFAULT 50,
+                    backgroundColor TEXT,
+                    color TEXT,
+                    recurring TEXT DEFAULT 'none',
+                    recurringDays TEXT DEFAULT '{}',
+                    recurringEventId TEXT
+                )
+            `);
+            console.log('[Database] Events table created');
+        }
+
+        // Check if users table exists
+        const usersTableExists = await db.get(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
+        );
+
+        if (!usersTableExists) {
+            await db.exec(`
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL
+                )
+            `);
+            console.log('[Database] Users table created');
+        }
+
+        // Check if settings table exists
+        const settingsTableExists = await db.get(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='settings'"
+        );
+
+        if (!settingsTableExists) {
+            await db.exec(`
+                CREATE TABLE settings (
+                    user_id INTEGER PRIMARY KEY,
+                    primaryColor TEXT DEFAULT '#2C2C2C',
+                    defaultEventWidth INTEGER DEFAULT 80,
+                    defaultStatusWidth INTEGER DEFAULT 20,
+                    dayStartTime TEXT DEFAULT '06:00',
+                    dayEndTime TEXT DEFAULT '22:00',
+                    font TEXT DEFAULT 'system-ui'
+                )
+            `);
+            console.log('[Database] Settings table created');
+        }
+
+        console.log('[Database] Database setup completed successfully');
+    } catch (error) {
+        console.error('[Database] Setup error:', error);
+        throw error;
     }
-    return dbInstance;
+}
+
+async function getAllEvents(userId) {
+    console.log('[Database] Fetching events for user:', userId);
+    const db = await getDb();
+    const events = await db.all('SELECT * FROM events WHERE user_id = ?', [userId]);
+    console.log('[Database] Raw events from database:', JSON.stringify(events, null, 2));
+
+    if (events.length === 0) {
+        console.log('[Database] No events found for user');
+        return [];
+    }
+
+    // Calculate date range (current month +/- 6 months)
+    const today = new Date();
+    const startDate = new Date(today.getFullYear(), today.getMonth() - 6, 1);
+    const endDate = new Date(today.getFullYear(), today.getMonth() + 6, 0);
+
+    console.log('[Database] Date range:', {
+        today: today.toISOString(),
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+    });
+
+    // Group events by recurringEventId
+    const eventGroups = events.reduce((groups, event) => {
+        if (event.recurringEventId) {
+            if (!groups[event.recurringEventId]) {
+                groups[event.recurringEventId] = [];
+            }
+            groups[event.recurringEventId].push(event);
+        } else {
+            if (!groups.nonRecurring) {
+                groups.nonRecurring = [];
+            }
+            groups.nonRecurring.push(event);
+        }
+        return groups;
+    }, {});
+
+    // Process each group
+    const allInstances = [];
+
+    // Handle non-recurring events
+    if (eventGroups.nonRecurring) {
+        allInstances.push(...eventGroups.nonRecurring.map(event => ({
+            ...event,
+            isRecurring: false
+        })));
+    }
+
+    // Handle recurring events
+    for (const [recurringId, groupEvents] of Object.entries(eventGroups)) {
+        if (recurringId === 'nonRecurring') continue;
+
+        // Use the earliest event in the group as the base event
+        const baseEvent = groupEvents.reduce((earliest, current) => {
+            const earliestDate = new Date(earliest.date);
+            const currentDate = new Date(current.date);
+            return currentDate < earliestDate ? current : earliest;
+        }, groupEvents[0]);
+
+        try {
+            console.log(`[Database] Processing recurring event group ${recurringId}:`, {
+                baseEvent: baseEvent.id,
+                date: baseEvent.date,
+                recurring: baseEvent.recurring,
+                recurringDays: baseEvent.recurringDays
+            });
+
+            const instances = generateRecurringInstances(baseEvent, startDate, endDate);
+            console.log(`[Database] Event group ${recurringId} generated ${instances.length} instances`);
+            allInstances.push(...instances);
+        } catch (error) {
+            console.error(`[Database] Error processing recurring event group ${recurringId}:`, error);
+            // If there's an error, include the original events
+            allInstances.push(...groupEvents);
+        }
+    }
+
+    // Remove duplicates based on date and recurringEventId
+    const uniqueInstances = allInstances.reduce((unique, event) => {
+        const key = `${event.date}-${event.recurringEventId || event.id}`;
+        if (!unique[key] || new Date(event.date) < new Date(unique[key].date)) {
+            unique[key] = event;
+        }
+        return unique;
+    }, {});
+
+    const finalEvents = Object.values(uniqueInstances);
+    console.log('[Database] Total events being returned:', finalEvents.length);
+    return finalEvents;
+}
+
+async function saveEvent(userId, event) {
+    const db = await getDb();
+
+    // Check if event exists
+    const existingEvent = await db.get('SELECT id FROM events WHERE id = ? AND user_id = ?', [event.id, userId]);
+
+    if (existingEvent) {
+        // Update existing event
+        await db.run(
+            `UPDATE events
+             SET name = ?, date = ?, startTime = ?, endTime = ?, type = ?,
+                 xPosition = ?, width = ?, backgroundColor = ?, color = ?,
+                 recurring = ?, recurringDays = ?, recurringEventId = ?
+             WHERE id = ? AND user_id = ?`,
+            [
+                event.name, event.date, event.startTime, event.endTime, event.type,
+                event.xPosition || 0, event.width || 50, event.backgroundColor, event.color,
+                event.recurring || 'none',
+                typeof event.recurringDays === 'string' ? event.recurringDays : '{}',
+                event.recurringEventId,
+                event.id, userId
+            ]
+        );
+    } else {
+        // Insert new event
+        await db.run(
+            `INSERT INTO events (
+                user_id, id, name, date, startTime, endTime, type,
+                xPosition, width, backgroundColor, color, recurring, recurringDays, recurringEventId
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                userId, event.id, event.name, event.date, event.startTime, event.endTime, event.type,
+                event.xPosition || 0, event.width || 50, event.backgroundColor, event.color,
+                event.recurring || 'none',
+                typeof event.recurringDays === 'string' ? event.recurringDays : '{}',
+                event.recurringEventId
+            ]
+        );
+    }
 }
 
 // Helper function to generate recurring event instances
@@ -125,36 +262,49 @@ function generateRecurringInstances(event, startDate, endDate) {
     const end = new Date(endDate);
     const eventDate = new Date(event.date);
 
-    // Limit end date to 1 year from event date
-    const maxDate = new Date(eventDate);
-    maxDate.setFullYear(maxDate.getFullYear() + 1);
-    if (end > maxDate) {
-        end.setTime(maxDate.getTime());
-    }
+    // Limit to 6 months from today
+    const today = new Date();
+    const maxDate = new Date(today);
+    maxDate.setMonth(maxDate.getMonth() + 6);
 
+    // Use the earliest of maxDate and endDate
+    const effectiveEndDate = end > maxDate ? maxDate : end;
+
+    // Start from the event date or start date, whichever is later
     let currentDate = new Date(Math.max(start.getTime(), eventDate.getTime()));
 
-    while (currentDate <= end) {
+    // Add the original event if it falls within our date range
+    if (eventDate >= start && eventDate <= effectiveEndDate) {
+        instances.push({
+            ...event,
+            isRecurring: true
+        });
+    }
+
+    // Generate future instances
+    while (currentDate <= effectiveEndDate) {
+        // Skip the original event date
+        if (currentDate.toISOString().split('T')[0] === event.date) {
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+        }
+
         let shouldAdd = false;
-        let reason = '';
 
         if (event.recurring === 'daily') {
             const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
             shouldAdd = recurringDays[dayName] === true;
-            reason = `daily - ${dayName}`;
         } else if (event.recurring === 'weekly') {
             shouldAdd = currentDate.getDay() === eventDate.getDay();
-            reason = `weekly - day ${currentDate.getDay()}`;
         } else if (event.recurring === 'monthly') {
             shouldAdd = currentDate.getDate() === eventDate.getDate();
-            reason = `monthly - date ${currentDate.getDate()}`;
         }
 
         if (shouldAdd) {
             const instanceDate = currentDate.toISOString().split('T')[0];
             instances.push({
                 ...event,
-                id: Date.now() + Math.floor(Math.random() * 1000), // Generate unique ID for each instance
+                id: `${event.id}-${instanceDate}`,
                 date: instanceDate,
                 isRecurring: true,
                 originalEventId: event.id,
@@ -162,143 +312,10 @@ function generateRecurringInstances(event, startDate, endDate) {
             });
         }
 
-        // Move to next day
         currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Always include the original event
-    instances.unshift({
-        ...event,
-        isRecurring: true
-    });
-
     return instances;
-}
-
-// Database operations
-async function getAllEvents(userId) {
-    console.log('[Database] Fetching events for user:', userId);
-    const db = await getDb();
-    const events = await db.all('SELECT * FROM events WHERE user_id = ?', [userId]);
-    console.log('[Database] Raw events from database:', JSON.stringify(events, null, 2));
-
-    if (events.length === 0) {
-        console.log('[Database] No events found for user');
-        return [];
-    }
-
-    // Log the first event as a sample
-    console.log('[Database] Sample event structure:', {
-        id: events[0].id,
-        name: events[0].name,
-        date: events[0].date,
-        type: events[0].type,
-        recurring: events[0].recurring,
-        recurringDays: events[0].recurringDays
-    });
-
-    // Calculate date range (current month +/- 1 month)
-    const today = new Date();
-    const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const endDate = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-
-    console.log('[Database] Date range:', {
-        today: today.toISOString(),
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString()
-    });
-
-    // Process each event
-    const allInstances = [];
-    for (const event of events) {
-        try {
-            console.log(`[Database] Processing event ${event.id}:`, {
-                name: event.name,
-                date: event.date,
-                recurring: event.recurring,
-                recurringDays: event.recurringDays
-            });
-
-            const instances = generateRecurringInstances(event, startDate, endDate);
-            console.log(`[Database] Event ${event.id} generated ${instances.length} instances`);
-            allInstances.push(...instances);
-        } catch (error) {
-            console.error(`[Database] Error processing event ${event.id}:`, error);
-            // If there's an error processing a recurring event, include the original
-            allInstances.push(event);
-        }
-    }
-
-    console.log('[Database] Total events being returned:', allInstances.length);
-    return allInstances;
-}
-
-async function replaceAllEvents(userId, events) {
-    const db = await getDb();
-    await db.exec('BEGIN TRANSACTION');
-
-    try {
-        await db.run('DELETE FROM events WHERE user_id = ?', [userId]);
-
-        const stmt = await db.prepare(`
-            INSERT INTO events (
-                user_id, id, name, date, startTime, endTime, type,
-                xPosition, width, backgroundColor, color, recurring, recurringDays
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
-        for (const event of events) {
-            // Ensure proper defaults for recurring fields
-            const recurring = event.recurring === true ? 'daily' : (event.recurring || 'none');
-
-            // Handle recurringDays properly
-            let recurringDays;
-            if (typeof event.recurringDays === 'string') {
-                try {
-                    // If it's already a JSON string, use it as is
-                    JSON.parse(event.recurringDays);
-                    recurringDays = event.recurringDays;
-                } catch (e) {
-                    // If it's not valid JSON, stringify it
-                    recurringDays = JSON.stringify(event.recurringDays || {});
-                }
-            } else {
-                // If it's an object, stringify it
-                recurringDays = JSON.stringify(event.recurringDays || {});
-            }
-
-            console.log('[Recurring] Saving event:', {
-                id: event.id,
-                name: event.name,
-                recurring,
-                recurringDays
-            });
-
-            await stmt.run(
-                userId,
-                event.id,
-                event.name,
-                event.date,
-                event.startTime,
-                event.endTime,
-                event.type,
-                event.xPosition !== undefined ? event.xPosition : 0,
-                event.width !== undefined ? event.width : 50,
-                event.backgroundColor,
-                event.color,
-                recurring,
-                recurringDays
-            );
-        }
-
-        await stmt.finalize();
-        await db.exec('COMMIT');
-        return true;
-    } catch (error) {
-        await db.exec('ROLLBACK');
-        throw error;
-    }
 }
 
 // Add user-related database operations
@@ -383,8 +400,9 @@ async function updateSettings(userId, settings) {
 
 module.exports = {
     setupDb,
+    getDb,
     getAllEvents,
-    replaceAllEvents,
+    saveEvent,
     createUser,
     getUser,
     getSettings,
