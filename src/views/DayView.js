@@ -193,7 +193,7 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
             <div className="flex items-start space-x-1">
                 {event.isRecurring && (
                     <div className="recurring-icon">
-                        <span className="material-icons">repeat</span>
+                        <span className="material-icons text-xs" style={{ fontSize: '14px' }}>autorenew</span>
                     </div>
                 )}
                 <div className="flex-1">
