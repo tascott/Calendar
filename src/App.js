@@ -169,6 +169,16 @@ function App() {
 
             // Only send essential data to the server
             const optimizedEvents = eventsToSave.map(event => {
+                // If this is a deletion, preserve only necessary fields
+                if (event.deleted) {
+                    return {
+                        id: event.id,
+                        deleted: true,
+                        recurring: event.recurring,
+                        recurringEventId: event.recurringEventId
+                    };
+                }
+
                 // Start with basic required fields
                 const optimizedEvent = {
                     id: event.id,
@@ -329,6 +339,27 @@ function App() {
     };
 
     const handleNewEvent = (eventData) => {
+        // If this is a deletion
+        if (eventData.deleted) {
+            console.log('[DELETE] Processing delete in App:', {
+                id: eventData.id,
+                recurring: eventData.recurring,
+                recurringEventId: eventData.recurringEventId
+            });
+            
+            // Remove from local state first
+            if (eventData.recurringEventId) {
+                setEvents(prev => prev.filter(e => e.recurringEventId !== eventData.recurringEventId));
+            } else {
+                setEvents(prev => prev.filter(e => e.id !== eventData.id));
+            }
+            
+            // Then delete from database
+            saveEvents(eventData);
+            setIsModalOpen(false);
+            return;
+        }
+
         // Ensure recurringDays is properly stringified and handle recurring property
         const processedEventData = {
             ...eventData,
@@ -577,7 +608,7 @@ function App() {
                                 onSubmit={handleNewEvent}
                                 onCancel={handleModalClose}
                                 initialTime={selectedTime}
-                                initialDate={new Date().toISOString().split('T')[0]}
+                                initialDate={selectedTime ? new Date().toISOString().split('T')[0] : undefined}
                                 initialData={editingEvent}
                             />
                         </div>

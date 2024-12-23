@@ -181,6 +181,73 @@ async function getAllEvents(userId) {
 
 async function saveEvent(userId, event) {
     const db = await getDb();
+    console.log('[SAVE] Received event:', {
+        userId,
+        eventId: event.id,
+        deleted: event.deleted,
+        recurring: event.recurring
+    });
+
+    // If event is marked for deletion
+    if (event.deleted) {
+        console.log('[DELETE] Backend received delete request:', {
+            id: event.id,
+            recurring: event.recurring,
+            recurringEventId: event.recurringEventId
+        });
+
+        try {
+            // First verify the event exists
+            const eventExists = await db.get('SELECT * FROM events WHERE id = ? AND user_id = ?', [event.id, userId]);
+            console.log('[DELETE] Event exists check:', {
+                exists: !!eventExists,
+                event: eventExists
+            });
+
+            if (!eventExists) {
+                console.log('[DELETE] Event not found in database');
+                return getAllEvents(userId);
+            }
+
+            if (event.recurringEventId) {
+                // Delete all events in the recurring series
+                const result = await db.run(
+                    'DELETE FROM events WHERE user_id = ? AND recurringEventId = ?',
+                    [userId, event.recurringEventId]
+                );
+                console.log('[DELETE] Recurring series deletion result:', {
+                    recurringId: event.recurringEventId,
+                    rowsAffected: result.changes
+                });
+            } else {
+                // Delete single event
+                const result = await db.run(
+                    'DELETE FROM events WHERE id = ? AND user_id = ?',
+                    [event.id, userId]
+                );
+                console.log('[DELETE] Single event deletion result:', {
+                    id: event.id,
+                    rowsAffected: result.changes
+                });
+            }
+
+            // Double check deletion
+            const eventStillExists = await db.get('SELECT * FROM events WHERE id = ? AND user_id = ?', [event.id, userId]);
+            console.log('[DELETE] Post-deletion check:', {
+                stillExists: !!eventStillExists,
+                event: eventStillExists
+            });
+
+            // Get all remaining events for verification
+            const remainingEvents = await db.all('SELECT id, recurring, recurringEventId FROM events WHERE user_id = ?', [userId]);
+            console.log('[DELETE] Remaining events after deletion:', remainingEvents);
+
+            return getAllEvents(userId);
+        } catch (error) {
+            console.error('[DELETE] Error during deletion:', error);
+            throw error;
+        }
+    }
 
     // Check if event exists
     const existingEvent = await db.get('SELECT id FROM events WHERE id = ? AND user_id = ?', [event.id, userId]);
@@ -218,6 +285,8 @@ async function saveEvent(userId, event) {
             ]
         );
     }
+
+    return getAllEvents(userId);
 }
 
 // Helper function to generate recurring event instances

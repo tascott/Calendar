@@ -20,56 +20,46 @@ const EVENT_DEFAULTS = {
     }
 };
 
-function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }) {
-    // Parse recurringDays from initialData if it exists
-    const getInitialRecurringDays = () => {
-        const defaultDays = {
-            monday: false,
-            tuesday: false,
-            wednesday: false,
-            thursday: false,
-            friday: false,
-            saturday: false,
-            sunday: false
-        };
-
-        if (!initialData?.recurringDays) return defaultDays;
-
-        try {
-            // If it's a string, try to parse it
-            if (typeof initialData.recurringDays === 'string') {
-                const parsed = JSON.parse(initialData.recurringDays);
-                // Ensure we have boolean values
-                return Object.keys(defaultDays).reduce((acc, day) => {
-                    acc[day] = Boolean(parsed[day]);
-                    return acc;
-                }, {...defaultDays});
-            }
-            // If it's already an object, ensure we have boolean values
-            return Object.keys(defaultDays).reduce((acc, day) => {
-                acc[day] = Boolean(initialData.recurringDays[day]);
-                return acc;
-            }, {...defaultDays});
-        } catch (e) {
-            console.error('Error parsing recurringDays:', e);
-            return defaultDays;
-        }
-    };
-
+const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }) => {
     const [formData, setFormData] = useState({
+        id: initialData?.id || undefined,
         name: initialData?.name || '',
-        date: initialData?.date || initialDate,
+        date: initialData?.date || initialDate || new Date().toISOString().split('T')[0],
         startTime: initialData?.startTime || initialTime || '09:00',
-        endTime: initialData?.endTime || (initialTime && addHalfHour(initialTime)) || '09:30',
+        endTime: initialData?.endTime || (initialTime ? addHours(initialTime, 1) : '10:00'),
         type: initialData?.type || 'event',
-        backgroundColor: initialData?.backgroundColor || EVENT_DEFAULTS.event.backgroundColor,
-        color: initialData?.color || EVENT_DEFAULTS.event.color,
-        width: initialData?.width || EVENT_DEFAULTS.event.width,
-        overlayText: initialData?.overlayText || EVENT_DEFAULTS.focus.overlayText,
         recurring: initialData?.recurring || 'none',
-        recurringDays: getInitialRecurringDays(),
-        recurringEventId: initialData?.recurringEventId || null
+        recurringEventId: initialData?.recurringEventId || null,
+        recurringDays: initialData?.recurringDays || {},
+        backgroundColor: initialData?.backgroundColor || '#DBEAFE',
+        color: initialData?.color || '#1E40AF',
+        width: initialData?.width || 80
     });
+
+    // Update form data when initialData changes
+    useEffect(() => {
+        if (initialData) {
+            console.log('[FORM] Initializing with data:', {
+                id: initialData.id,
+                recurring: initialData.recurring,
+                recurringEventId: initialData.recurringEventId
+            });
+            setFormData({
+                id: initialData.id,
+                name: initialData.name || '',
+                date: initialData.date || initialDate || new Date().toISOString().split('T')[0],
+                startTime: initialData.startTime || initialTime || '09:00',
+                endTime: initialData.endTime || (initialTime ? addHours(initialTime, 1) : '10:00'),
+                type: initialData.type || 'event',
+                recurring: initialData.recurring || 'none',
+                recurringEventId: initialData.recurringEventId || null,
+                recurringDays: initialData.recurringDays || {},
+                backgroundColor: initialData.backgroundColor || '#DBEAFE',
+                color: initialData.color || '#1E40AF',
+                width: initialData.width || 80
+            });
+        }
+    }, [initialData, initialDate, initialTime]);
 
     // Helper function to add 30 minutes to a time string
     function addHalfHour(timeStr) {
@@ -83,6 +73,20 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
         } catch (error) {
             console.error('Error processing time:', error);
             return '09:30';
+        }
+    }
+
+    // Helper function to add hours to a time string
+    function addHours(timeStr, hours) {
+        if (!timeStr || typeof timeStr !== 'string') return '09:00';
+        try {
+            const [timeHours, timeMinutes] = timeStr.split(':').map(Number);
+            const newHours = timeHours + hours;
+            const newMinutes = timeMinutes;
+            return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
+        } catch (error) {
+            console.error('Error processing time:', error);
+            return '09:00';
         }
     }
 
@@ -176,6 +180,23 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
         };
 
         onSubmit(processedData);
+    };
+
+    const handleDelete = () => {
+        if (window.confirm('Are you sure you want to delete this event?')) {
+            console.log('[DELETE] Initiating delete for event:', {
+                id: formData.id,
+                recurring: formData.recurring,
+                recurringEventId: formData.recurringEventId
+            });
+            onSubmit({ 
+                ...formData, 
+                deleted: true,
+                // Ensure we pass the original event's recurring info
+                recurring: initialData?.recurring || formData.recurring,
+                recurringEventId: initialData?.recurringEventId || formData.recurringEventId
+            });
+        }
     };
 
     return (
@@ -367,17 +388,26 @@ function EventForm({ onSubmit, onCancel, initialTime, initialDate, initialData }
                 </div>
             )}
 
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-end space-x-4 mt-6">
+                {initialData && (
+                    <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                    >
+                        Delete Event
+                    </button>
+                )}
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
                 >
                     Cancel
                 </button>
                 <button
                     type="submit"
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
                 >
                     {initialData ? 'Update Event' : 'Create Event'}
                 </button>
