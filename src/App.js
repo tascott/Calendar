@@ -27,6 +27,7 @@ function App() {
     const [isRegistering, setIsRegistering] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [hasActiveStatus, setHasActiveStatus] = useState(false);
+    const [activeFocusEvent, setActiveFocusEvent] = useState(null);
     const [settings, setSettings] = useState({
         primaryColor: '#2C2C2C',
         defaultEventWidth: 80,
@@ -94,6 +95,30 @@ function App() {
         // Check immediately and set up interval
         checkActiveStatus();
         const interval = setInterval(checkActiveStatus, 10000); // Check every 10 seconds
+
+        return () => clearInterval(interval);
+    }, [events]);
+
+    // Check for active focus events
+    useEffect(() => {
+        const checkActiveFocusEvent = () => {
+            const now = new Date('2024-12-23T18:16:44Z');
+            const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
+            const today = now.toISOString().split('T')[0];
+
+            const focusEvent = events.find(event => 
+                event.type === 'focus' &&
+                event.date === today &&
+                event.startTime <= currentTime &&
+                event.endTime >= currentTime
+            );
+
+            setActiveFocusEvent(focusEvent);
+        };
+
+        // Check immediately and then every minute
+        checkActiveFocusEvent();
+        const interval = setInterval(checkActiveFocusEvent, 60000);
 
         return () => clearInterval(interval);
     }, [events]);
@@ -179,6 +204,8 @@ function App() {
                     };
                 }
 
+                console.log('[Events] Processing event for save:', event); // Debug log
+
                 // Start with basic required fields
                 const optimizedEvent = {
                     id: event.id,
@@ -186,7 +213,8 @@ function App() {
                     date: event.date,
                     startTime: event.startTime,
                     endTime: event.endTime,
-                    type: event.type
+                    type: event.type,
+                    overlayText: event.type === 'focus' ? (event.overlayText || 'Focus.') : undefined
                 };
 
                 // Only add optional fields if they exist and are not default values
@@ -384,14 +412,14 @@ function App() {
                 recurring: eventData.recurring,
                 recurringEventId: eventData.recurringEventId
             });
-            
+
             // Remove from local state first
             if (eventData.recurringEventId) {
                 setEvents(prev => prev.filter(e => e.recurringEventId !== eventData.recurringEventId));
             } else {
                 setEvents(prev => prev.filter(e => e.id !== eventData.id));
             }
-            
+
             // Then delete from database
             saveEvents(eventData);
             setIsModalOpen(false);
@@ -531,7 +559,7 @@ function App() {
 
     const handleEventDrop = (eventId, newDate, newTime) => {
         console.log('[DROP] Event dropped:', { eventId, newDate, newTime });
-        
+
         const droppedEvent = events.find(e => e.id === eventId);
         if (!droppedEvent) {
             console.error('[DROP] Event not found:', eventId);
@@ -611,20 +639,9 @@ function App() {
         }
     };
 
-    const handleTerminalCommand = async () => {
-        try {
-            await run_terminal_command({
-                command: "npm install axios",
-                explanation: "Installing axios package for making HTTP requests",
-                requireUserApproval: true
-            });
-        } catch (error) {
-            console.error('Error installing axios:', error);
-        }
-    };
-
     return (
         <DndProvider backend={dndBackend} options={dndOptions}>
+            <StatusOverlay isActive={!!activeFocusEvent} event={activeFocusEvent} />
             <div
                 className="min-h-screen w-full flex flex-col bg-[#F6F5F1]"
                 style={{ fontFamily: settings.font }}

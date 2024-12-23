@@ -7,6 +7,8 @@ function StatusOverlay({ isActive, event }) {
     const fullText = event?.overlayText || 'Focus.';
     const typingIntervalRef = useRef(null);
 
+    console.log('[StatusOverlay] Rendering with isActive:', isActive, 'and event:', event);
+
     useEffect(() => {
         // Only show overlay if event is active, is a focus event
         const shouldShowOverlay = isActive &&

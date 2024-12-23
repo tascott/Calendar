@@ -1,25 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// Default colors for different event types
-const EVENT_DEFAULTS = {
-    event: {
-        backgroundColor: '#DBEAFE', // light blue
-        color: '#1E40AF',          // dark blue
-        width: 50
-    },
-    status: {
-        backgroundColor: '#FEF3C7', // light yellow
-        color: '#92400E',          // dark yellow/brown
-        width: 20
-    },
-    focus: {
-        backgroundColor: '#DCF7E3', // light green
-        color: '#166534',          // dark green
-        width: 100,                // Changed from 20 to 100
-        overlayText: 'focus.'      // Changed from text to overlayText
-    }
-};
-
 const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }) => {
     // Parse recurringDays from initialData if it exists
     const parseRecurringDays = (data) => {
@@ -60,7 +40,8 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
         recurringDays: parseRecurringDays(initialData),
         backgroundColor: initialData?.backgroundColor || '#DBEAFE',
         color: initialData?.color || '#1E40AF',
-        width: initialData?.width || 80
+        width: initialData?.width || 80,
+        overlayText: initialData?.overlayText || 'Focus.'
     });
 
     // Update form data when initialData changes
@@ -84,7 +65,8 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
                 recurringDays: parseRecurringDays(initialData),
                 backgroundColor: initialData.backgroundColor || '#DBEAFE',
                 color: initialData.color || '#1E40AF',
-                width: initialData.width || 80
+                width: initialData.width || 80,
+                overlayText: initialData?.overlayText || 'Focus.'
             });
         }
     }, [initialData, initialDate, initialTime]);
@@ -223,8 +205,8 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
         const processedData = {
             ...formData,
             // Ensure recurringDays is properly stringified
-            recurringDays: formData.recurring === 'none' ? 
-                '{}' : 
+            recurringDays: formData.recurring === 'none' ?
+                '{}' :
                 JSON.stringify(formData.recurringDays)
         };
 
@@ -232,16 +214,16 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
     };
 
     const handleDelete = () => {
-        if (window.confirm('Are you sure you want to delete this event?' + 
+        if (window.confirm('Are you sure you want to delete this event?' +
             (initialData?.recurring !== 'none' ? ' This will delete all recurring instances.' : ''))) {
             console.log('[DELETE] Initiating delete for event:', {
                 id: initialData?.id,
                 recurring: initialData?.recurring,
                 recurringEventId: initialData?.recurringEventId
             });
-            
+
             // Use initialData for deletion to ensure we have the original event's properties
-            onSubmit({ 
+            onSubmit({
                 id: initialData?.id,
                 deleted: true,
                 recurring: initialData?.recurring || 'none',

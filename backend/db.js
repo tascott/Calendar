@@ -38,10 +38,22 @@ async function setupDb() {
                     color TEXT,
                     recurring TEXT DEFAULT 'none',
                     recurringDays TEXT DEFAULT '{}',
-                    recurringEventId TEXT
+                    recurringEventId TEXT,
+                    overlayText TEXT
                 )
             `);
             console.log('[Database] Events table created');
+        } else {
+            // Check if overlayText column exists
+            const columnExists = await db.get(
+                "SELECT * FROM pragma_table_info('events') WHERE name='overlayText'"
+            );
+            
+            if (!columnExists) {
+                // Add overlayText column if it doesn't exist
+                await db.exec('ALTER TABLE events ADD COLUMN overlayText TEXT');
+                console.log('[Database] Added overlayText column to events table');
+            }
         }
 
         // Check if users table exists
@@ -247,7 +259,7 @@ async function saveEvent(userId, event) {
             `UPDATE events
              SET name = ?, date = ?, startTime = ?, endTime = ?, type = ?,
                  xPosition = ?, width = ?, backgroundColor = ?, color = ?,
-                 recurring = ?, recurringDays = ?, recurringEventId = ?
+                 recurring = ?, recurringDays = ?, recurringEventId = ?, overlayText = ?
              WHERE id = ? AND user_id = ?`,
             [
                 event.name, event.date, event.startTime, event.endTime, event.type,
@@ -255,6 +267,7 @@ async function saveEvent(userId, event) {
                 event.recurring || 'none',
                 typeof event.recurringDays === 'string' ? event.recurringDays : '{}',
                 event.recurringEventId,
+                event.overlayText,
                 event.id, userId
             ]
         );
@@ -263,14 +276,15 @@ async function saveEvent(userId, event) {
         await db.run(
             `INSERT INTO events (
                 user_id, id, name, date, startTime, endTime, type,
-                xPosition, width, backgroundColor, color, recurring, recurringDays, recurringEventId
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                xPosition, width, backgroundColor, color, recurring, recurringDays, recurringEventId, overlayText
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 userId, event.id, event.name, event.date, event.startTime, event.endTime, event.type,
                 event.xPosition || 0, event.width || 50, event.backgroundColor, event.color,
                 event.recurring || 'none',
                 typeof event.recurringDays === 'string' ? event.recurringDays : '{}',
-                event.recurringEventId
+                event.recurringEventId,
+                event.overlayText
             ]
         );
     }
