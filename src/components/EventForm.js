@@ -178,7 +178,29 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
                 setFormData(prev => ({
                     ...prev,
                     recurring: value,
-                    recurringDays: parseRecurringDays(null)
+                    recurringDays: {
+                        monday: false,
+                        tuesday: false,
+                        wednesday: false,
+                        thursday: false,
+                        friday: false,
+                        saturday: false,
+                        sunday: false
+                    }
+                }));
+            } else if (value === 'daily') {
+                setFormData(prev => ({
+                    ...prev,
+                    recurring: value,
+                    recurringDays: {
+                        monday: true,
+                        tuesday: true,
+                        wednesday: true,
+                        thursday: true,
+                        friday: true,
+                        saturday: true,
+                        sunday: true
+                    }
                 }));
             } else {
                 setFormData(prev => ({
