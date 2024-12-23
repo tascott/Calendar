@@ -183,18 +183,20 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
     };
 
     const handleDelete = () => {
-        if (window.confirm('Are you sure you want to delete this event?')) {
+        if (window.confirm('Are you sure you want to delete this event?' + 
+            (initialData?.recurring !== 'none' ? ' This will delete all recurring instances.' : ''))) {
             console.log('[DELETE] Initiating delete for event:', {
-                id: formData.id,
-                recurring: formData.recurring,
-                recurringEventId: formData.recurringEventId
+                id: initialData?.id,
+                recurring: initialData?.recurring,
+                recurringEventId: initialData?.recurringEventId
             });
+            
+            // Use initialData for deletion to ensure we have the original event's properties
             onSubmit({ 
-                ...formData, 
+                id: initialData?.id,
                 deleted: true,
-                // Ensure we pass the original event's recurring info
-                recurring: initialData?.recurring || formData.recurring,
-                recurringEventId: initialData?.recurringEventId || formData.recurringEventId
+                recurring: initialData?.recurring || 'none',
+                recurringEventId: initialData?.recurringEventId
             });
         }
     };

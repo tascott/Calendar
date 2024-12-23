@@ -185,7 +185,8 @@ async function saveEvent(userId, event) {
         userId,
         eventId: event.id,
         deleted: event.deleted,
-        recurring: event.recurring
+        recurring: event.recurring,
+        recurringEventId: event.recurringEventId
     });
 
     // If event is marked for deletion
@@ -197,31 +198,23 @@ async function saveEvent(userId, event) {
         });
 
         try {
-            // First verify the event exists
-            const eventExists = await db.get('SELECT * FROM events WHERE id = ? AND user_id = ?', [event.id, userId]);
-            console.log('[DELETE] Event exists check:', {
-                exists: !!eventExists,
-                event: eventExists
-            });
-
-            if (!eventExists) {
-                console.log('[DELETE] Event not found in database');
-                return getAllEvents(userId);
-            }
-
-            if (event.recurringEventId) {
+            let result;
+            if (event.recurring !== 'none' || event.recurringEventId) {
                 // Delete all events in the recurring series
-                const result = await db.run(
-                    'DELETE FROM events WHERE user_id = ? AND recurringEventId = ?',
-                    [userId, event.recurringEventId]
+                console.log('[DELETE] Deleting recurring series:', event.recurringEventId);
+                result = await db.run(
+                    'DELETE FROM events WHERE user_id = ? AND (recurringEventId = ? OR id = ?)',
+                    [userId, event.recurringEventId, event.id]
                 );
                 console.log('[DELETE] Recurring series deletion result:', {
                     recurringId: event.recurringEventId,
+                    eventId: event.id,
                     rowsAffected: result.changes
                 });
             } else {
                 // Delete single event
-                const result = await db.run(
+                console.log('[DELETE] Deleting single event:', event.id);
+                result = await db.run(
                     'DELETE FROM events WHERE id = ? AND user_id = ?',
                     [event.id, userId]
                 );
@@ -231,16 +224,12 @@ async function saveEvent(userId, event) {
                 });
             }
 
-            // Double check deletion
-            const eventStillExists = await db.get('SELECT * FROM events WHERE id = ? AND user_id = ?', [event.id, userId]);
-            console.log('[DELETE] Post-deletion check:', {
-                stillExists: !!eventStillExists,
-                event: eventStillExists
-            });
-
             // Get all remaining events for verification
-            const remainingEvents = await db.all('SELECT id, recurring, recurringEventId FROM events WHERE user_id = ?', [userId]);
-            console.log('[DELETE] Remaining events after deletion:', remainingEvents);
+            const remainingEvents = await db.all(
+                'SELECT id, recurring, recurringEventId FROM events WHERE user_id = ? AND (recurringEventId = ? OR id = ?)', 
+                [userId, event.recurringEventId, event.id]
+            );
+            console.log('[DELETE] Checking for remaining events in series:', remainingEvents);
 
             return getAllEvents(userId);
         } catch (error) {
