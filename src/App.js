@@ -533,62 +533,65 @@ function App() {
                 style={{ fontFamily: settings.font }}
             >
                 {/* Header */}
-                <header className="flex-none w-full bg-[#F6F5F1] border-b border-[#D3D1C7]">
+                <header className="flex-none w-full bg-[#F6F5F1] border-b border-[#D1C7]">
                     <div className="max-w-[1600px] w-full mx-auto px-8 py-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h1 className="text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
-                            <div className="flex space-x-4">
-                                <button
-                                    onClick={() => setIsSettingsOpen(true)}
-                                    className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
-                                    style={{
-                                        color: settings.primaryColor,
-                                        borderColor: settings.primaryColor,
-                                        ':hover': {
-                                            backgroundColor: settings.primaryColor,
-                                            color: '#F6F5F1'
-                                        }
-                                    }}
-                                >
-                                    Settings
-                                </button>
-                                <button
-                                    onClick={() => handleGridDoubleClick(null)}
-                                    className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
-                                    style={{
-                                        color: settings.primaryColor,
-                                        borderColor: settings.primaryColor,
-                                        ':hover': {
-                                            backgroundColor: settings.primaryColor,
-                                            color: '#F6F5F1'
-                                        }
-                                    }}
-                                >
-                                    New Event
-                                </button>
-                                {token && (
+                        <div className="flex flex-col space-y-4">
+                            {/* First row: Calendar title and buttons */}
+                            <div className="flex justify-between items-center">
+                                <h1 className="text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
+                                <div className="flex space-x-4">
                                     <button
-                                        onClick={handleLogout}
-                                        className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
-                                        style={{
-                                            color: settings.primaryColor,
-                                            borderColor: settings.primaryColor,
-                                            ':hover': {
-                                                backgroundColor: settings.primaryColor,
-                                                color: '#F6F5F1'
-                                            }
+                                        onClick={() => {
+                                            setEditingEvent(null);
+                                            setIsModalOpen(true);
                                         }}
+                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
                                     >
-                                        Logout
+                                        New Event
                                     </button>
-                                )}
+                                    <button
+                                        onClick={() => {
+                                            // TODO: Implement task creation
+                                            console.log('New Task clicked');
+                                        }}
+                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    >
+                                        New Task
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Second row: Note input */}
+                            <div className="flex items-center space-x-3 max-w-md">
+                                <label htmlFor="newNote" className="block text-sm font-medium text-[#2C2C2C]">
+                                    New Note
+                                </label>
+                                <input
+                                    type="text"
+                                    id="newNote"
+                                    name="newNote"
+                                    className="flex-1 px-3 py-2 bg-white border-2 border-[#2C2C2C] rounded text-sm text-[#2C2C2C] placeholder-[#6B7280] focus:outline-none focus:border-[#4A4A4A] focus:ring-1 focus:ring-[#4A4A4A] transition-shadow duration-200"
+                                    placeholder="Enter a new note..."
+                                />
+                            </div>
+
+                            {/* Third row: Settings and view controls */}
+                            <div className="flex justify-between items-center">
+                                <div className="flex space-x-4">
+                                    <button
+                                        onClick={() => setIsSettingsOpen(true)}
+                                        className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
+                                    >
+                                        Settings
+                                    </button>
+                                </div>
+                                <ViewSelector
+                                    currentView={currentView}
+                                    onViewChange={setCurrentView}
+                                    primaryColor={settings.primaryColor}
+                                />
                             </div>
                         </div>
-                        <ViewSelector
-                            currentView={currentView}
-                            onViewChange={setCurrentView}
-                            primaryColor={settings.primaryColor}
-                        />
                     </div>
                 </header>
 
