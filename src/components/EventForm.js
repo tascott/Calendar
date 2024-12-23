@@ -21,6 +21,33 @@ const EVENT_DEFAULTS = {
 };
 
 const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }) => {
+    // Parse recurringDays from initialData if it exists
+    const parseRecurringDays = (data) => {
+        const defaultDays = {
+            monday: false,
+            tuesday: false,
+            wednesday: false,
+            thursday: false,
+            friday: false,
+            saturday: false,
+            sunday: false
+        };
+
+        if (!data?.recurringDays) return defaultDays;
+
+        try {
+            // If it's a string, parse it
+            if (typeof data.recurringDays === 'string') {
+                return { ...defaultDays, ...JSON.parse(data.recurringDays) };
+            }
+            // If it's already an object, use it
+            return { ...defaultDays, ...data.recurringDays };
+        } catch (e) {
+            console.error('[FORM] Error parsing recurringDays:', e);
+            return defaultDays;
+        }
+    };
+
     const [formData, setFormData] = useState({
         id: initialData?.id || undefined,
         name: initialData?.name || '',
@@ -30,7 +57,7 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
         type: initialData?.type || 'event',
         recurring: initialData?.recurring || 'none',
         recurringEventId: initialData?.recurringEventId || null,
-        recurringDays: initialData?.recurringDays || {},
+        recurringDays: parseRecurringDays(initialData),
         backgroundColor: initialData?.backgroundColor || '#DBEAFE',
         color: initialData?.color || '#1E40AF',
         width: initialData?.width || 80
@@ -42,7 +69,8 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
             console.log('[FORM] Initializing with data:', {
                 id: initialData.id,
                 recurring: initialData.recurring,
-                recurringEventId: initialData.recurringEventId
+                recurringEventId: initialData.recurringEventId,
+                recurringDays: parseRecurringDays(initialData)
             });
             setFormData({
                 id: initialData.id,
@@ -53,7 +81,7 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
                 type: initialData.type || 'event',
                 recurring: initialData.recurring || 'none',
                 recurringEventId: initialData.recurringEventId || null,
-                recurringDays: initialData.recurringDays || {},
+                recurringDays: parseRecurringDays(initialData),
                 backgroundColor: initialData.backgroundColor || '#DBEAFE',
                 color: initialData.color || '#1E40AF',
                 width: initialData.width || 80
@@ -145,20 +173,19 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
                     [day]: checked
                 }
             }));
-        } else if (name === 'recurring' && value === 'none') {
-            setFormData(prev => ({
-                ...prev,
-                recurring: value,
-                recurringDays: {
-                    monday: false,
-                    tuesday: false,
-                    wednesday: false,
-                    thursday: false,
-                    friday: false,
-                    saturday: false,
-                    sunday: false
-                }
-            }));
+        } else if (name === 'recurring') {
+            if (value === 'none') {
+                setFormData(prev => ({
+                    ...prev,
+                    recurring: value,
+                    recurringDays: parseRecurringDays(null)
+                }));
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    recurring: value
+                }));
+            }
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -170,13 +197,13 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // If this is a recurring event and we're creating a new event (not editing),
-        // generate a unique recurring event ID
+        // Process the form data
         const processedData = {
             ...formData,
-            recurringEventId: formData.recurring !== 'none'
-                ? (formData.recurringEventId || `recurring-${Date.now()}`)
-                : null
+            // Ensure recurringDays is properly stringified
+            recurringDays: formData.recurring === 'none' ? 
+                '{}' : 
+                JSON.stringify(formData.recurringDays)
         };
 
         onSubmit(processedData);
