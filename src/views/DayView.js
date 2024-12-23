@@ -135,6 +135,10 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                 type: event.type,
                 backgroundColor: event.backgroundColor,
                 color: event.color,
+                recurring: event.recurring,
+                recurringEventId: event.recurringEventId,
+                recurringDays: event.recurringDays,
+                date: event.date,
                 grabOffset: {
                     y: clientOffset.y - rect.top,
                     x: clientOffset.x - rect.left
@@ -367,7 +371,8 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                 endTime,
                 xPosition: newXPosition,
                 isDragging: true,
-                isVisualOnly: true  // Flag to indicate this is just for visual update
+                isVisualOnly: true,  // Flag to indicate this is just for visual update
+                date: currentDateStr  // Add the current date
             };
 
             // Update visual position only
@@ -379,11 +384,12 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                 const { isVisualOnly, ...finalPosition } = item.currentPosition;
                 onEventUpdate(item.id, {
                     ...finalPosition,
-                    isDragging: false
+                    isDragging: false,
+                    date: currentDateStr  // Add the current date
                 });
             }
         }
-    }), [onEventUpdate]);
+    }), [onEventUpdate, currentDateStr]);
 
     const handleGridDoubleClick = (e) => {
         if (!onDoubleClick) return;

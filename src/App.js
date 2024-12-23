@@ -319,23 +319,61 @@ function App() {
             }
         }
 
-        // Create a new array with the updated event
-        const updatedEvents = events.map(event =>
-            event.id === eventId
-                ? { ...event, ...updates }
-                : event
-        );
+        const eventToUpdate = events.find(e => e.id === eventId);
+        if (!eventToUpdate) return;
+
+        let eventsToUpdate;
+
+        // Handle recurring events
+        if (eventToUpdate.recurring !== 'none' && eventToUpdate.recurringEventId && !updates.isVisualOnly) {
+            // Calculate time difference
+            const oldDate = new Date(eventToUpdate.date);
+            const newDate = new Date(updates.date);
+            const daysDiff = Math.round((newDate - oldDate) / (1000 * 60 * 60 * 24));
+
+            // Update all events in the series
+            eventsToUpdate = events.map(event => {
+                if (event.recurringEventId === eventToUpdate.recurringEventId) {
+                    const eventDate = new Date(event.date);
+                    eventDate.setDate(eventDate.getDate() + daysDiff);
+                    return {
+                        ...event,
+                        date: eventDate.toISOString().split('T')[0],
+                        startTime: updates.startTime || event.startTime,
+                        endTime: updates.endTime || event.endTime,
+                        xPosition: updates.xPosition,
+                        isDragging: updates.isDragging
+                    };
+                }
+                return event;
+            });
+        } else {
+            // Handle non-recurring events or visual updates during drag
+            eventsToUpdate = events.map(event =>
+                event.id === eventId
+                    ? { ...event, ...updates }
+                    : event
+            );
+        }
 
         // Only save to database if this is a final update (not during drag)
-        if (updates.justDropped || !updates.isDragging) {
-            const updatedEvent = updatedEvents.find(e => e.id === eventId);
+        if (!updates.isDragging && !updates.isVisualOnly) {
+            const updatedEvent = eventsToUpdate.find(e => e.id === eventId);
             if (updatedEvent) {
-                saveEvents(updatedEvent); // Only save the updated event
+                if (updatedEvent.recurring !== 'none' && updatedEvent.recurringEventId) {
+                    // Save all events in the series
+                    const seriesEvents = eventsToUpdate.filter(
+                        e => e.recurringEventId === updatedEvent.recurringEventId
+                    );
+                    saveEvents(seriesEvents);
+                } else {
+                    saveEvents(updatedEvent);
+                }
             }
         }
 
         // Update local state
-        setEvents(updatedEvents);
+        setEvents(eventsToUpdate);
     };
 
     const handleNewEvent = (eventData) => {
@@ -491,11 +529,70 @@ function App() {
         setCurrentDate(newDate);
     };
 
+    const handleEventDrop = (eventId, newDate, newTime) => {
+        console.log('[DROP] Event dropped:', { eventId, newDate, newTime });
+        
+        const droppedEvent = events.find(e => e.id === eventId);
+        if (!droppedEvent) {
+            console.error('[DROP] Event not found:', eventId);
+            return;
+        }
+
+        // If this is a recurring event, update all instances
+        if (droppedEvent.recurring !== 'none' && droppedEvent.recurringEventId) {
+            // Calculate the time difference to apply to all events
+            const oldDate = new Date(droppedEvent.date);
+            const newDateObj = new Date(newDate);
+            const daysDiff = Math.round((newDateObj - oldDate) / (1000 * 60 * 60 * 24));
+
+            // Update all events in the series
+            const updatedEvents = events.map(event => {
+                if (event.recurringEventId === droppedEvent.recurringEventId) {
+                    const eventDate = new Date(event.date);
+                    eventDate.setDate(eventDate.getDate() + daysDiff);
+                    return {
+                        ...event,
+                        date: eventDate.toISOString().split('T')[0],
+                        startTime: newTime || event.startTime
+                    };
+                }
+                return event;
+            });
+
+            setEvents(updatedEvents);
+            // Save all updated events
+            const eventsToSave = updatedEvents.filter(
+                e => e.recurringEventId === droppedEvent.recurringEventId
+            );
+            saveEvents(eventsToSave);
+            return;
+        }
+
+        // Handle single event move
+        const updatedEvents = events.map(event => {
+            if (event.id === eventId) {
+                return {
+                    ...event,
+                    date: newDate,
+                    startTime: newTime || event.startTime
+                };
+            }
+            return event;
+        });
+
+        setEvents(updatedEvents);
+        const eventToSave = updatedEvents.find(e => e.id === eventId);
+        if (eventToSave) {
+            saveEvents(eventToSave);
+        }
+    };
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
             onEventClick: handleGridDoubleClick,
             onEventUpdate: handleEventUpdate,
+            onEventDrop: handleEventDrop,
             currentDate,
             onNavigate: handleNavigate,
             settings: {
