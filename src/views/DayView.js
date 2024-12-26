@@ -235,7 +235,7 @@ function OutOfRangeIndicator({ position, count }) {
     );
 }
 
-function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentDate = new Date(), onNavigate }) {
+function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentDate = new Date(), onNavigate, tasks = [] }) {
     const gridRef = useRef(null);
 
     // Filter events for the current day and include recurring events
@@ -440,6 +440,25 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                         gridTemplateRows: `repeat(${visibleHours}, 3rem)`
                     }}
                 >
+                    {/* Task dots */}
+                    {tasks
+                        .filter(task => task.date === currentDate.toISOString().split('T')[0])
+                        .map(task => {
+                            const minutes = timeToMinutes(task.time);
+                            const topPercentage = ((minutes - startMinutes) / (endMinutes - startMinutes)) * 100;
+                            return (
+                                <div
+                                    key={task.id}
+                                    className="absolute w-2 h-2 bg-red-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
+                                    style={{
+                                        top: `${topPercentage}%`,
+                                        left: '10px'
+                                    }}
+                                    title={task.title}
+                                />
+                            );
+                        })}
+
                     {/* Out of range indicators */}
                     {beforeRange.length > 0 && (
                         <OutOfRangeIndicator position="top" count={beforeRange.length} />

@@ -652,7 +652,8 @@ function App() {
             settings: {
                 dayStartTime: settings.dayStartTime,
                 dayEndTime: settings.dayEndTime
-            }
+            },
+            tasks
         };
 
         switch (currentView) {
