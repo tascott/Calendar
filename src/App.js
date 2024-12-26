@@ -102,7 +102,7 @@ function App() {
     // Check for active focus events
     useEffect(() => {
         const checkActiveFocusEvent = () => {
-            const now = new Date('2024-12-23T18:16:44Z');
+            const now = new Date();
             const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
             const today = now.toISOString().split('T')[0];
 
