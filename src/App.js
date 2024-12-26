@@ -665,6 +665,13 @@ function App() {
         }
     };
 
+    // Add effect to fetch tasks when authenticated
+    useEffect(() => {
+        if (token) {
+            fetchTasks();
+        }
+    }, [token]);
+
     return (
         <DndProvider backend={dndBackend} options={dndOptions}>
             <StatusOverlay isActive={!!activeFocusEvent} event={activeFocusEvent} />
@@ -694,6 +701,22 @@ function App() {
                                         className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
                                     >
                                         New Task
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            console.log('=== DEBUG INFO ===');
+                                            console.log('User:', {
+                                                id: token ? JSON.parse(atob(token.split('.')[1])).id : null,
+                                                username: token ? JSON.parse(atob(token.split('.')[1])).username : null
+                                            });
+                                            console.log('Events:', events);
+                                            console.log('Tasks:', tasks);
+                                            console.log('Settings:', settings);
+                                            console.log('================');
+                                        }}
+                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    >
+                                        Debug Info
                                     </button>
                                 </div>
                             </div>
