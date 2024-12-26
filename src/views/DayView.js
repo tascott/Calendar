@@ -449,12 +449,17 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                             return (
                                 <div
                                     key={task.id}
-                                    className="absolute w-2 h-2 bg-red-500 rounded-full transform -translate-x-1/2 -translate-y-1/2"
+                                    className="absolute w-4 h-4 bg-red-500 task-dot rounded-full transform -translate-x-1/2 -translate-y-1/2"
                                     style={{
                                         top: `${topPercentage}%`,
-                                        left: '10px'
+                                        left: '10px',
+                                        zIndex: 1000
                                     }}
                                     title={task.title}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        console.log('Task clicked:', task);
+                                    }}
                                 />
                             );
                         })}
