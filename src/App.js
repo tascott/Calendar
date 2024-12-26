@@ -11,6 +11,7 @@ import EventForm from './components/EventForm';
 import SettingsForm from './components/SettingsForm';
 import StatusOverlay from './components/StatusOverlay';
 import axios from 'axios';
+import TaskForm from './components/TaskForm';
 
 const API_URL = 'http://localhost:3001';
 
@@ -36,6 +37,7 @@ function App() {
         dayEndTime: '22:00',
         font: 'system-ui'
     });
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -106,7 +108,7 @@ function App() {
             const currentTime = now.toLocaleTimeString('en-US', { hour12: false });
             const today = now.toISOString().split('T')[0];
 
-            const focusEvent = events.find(event => 
+            const focusEvent = events.find(event =>
                 event.type === 'focus' &&
                 event.date === today &&
                 event.startTime <= currentTime &&
@@ -615,6 +617,11 @@ function App() {
         }
     };
 
+    const handleNewTask = (taskData) => {
+        console.log('New Task:', taskData);
+        setIsTaskModalOpen(false);
+    };
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
@@ -664,10 +671,7 @@ function App() {
                                         New Event
                                     </button>
                                     <button
-                                        onClick={() => {
-                                            // TODO: Implement task creation
-                                            console.log('New Task clicked');
-                                        }}
+                                        onClick={() => setIsTaskModalOpen(true)}
                                         className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
                                     >
                                         New Task
@@ -805,6 +809,18 @@ function App() {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {isTaskModalOpen && (
+                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">New Task</h2>
+                            <TaskForm
+                                onSubmit={handleNewTask}
+                                onCancel={() => setIsTaskModalOpen(false)}
+                            />
                         </div>
                     </div>
                 )}
