@@ -38,6 +38,7 @@ function App() {
         font: 'system-ui'
     });
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+    const [tasks, setTasks] = useState([]);
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -617,9 +618,27 @@ function App() {
         }
     };
 
-    const handleNewTask = (taskData) => {
-        console.log('New Task:', taskData);
-        setIsTaskModalOpen(false);
+    const fetchTasks = async () => {
+        try {
+            console.log('[Tasks] Fetching tasks');
+            const response = await axiosInstance.get('/tasks');
+            console.log('[Tasks] Fetch successful:', response.data);
+            setTasks(response.data);
+        } catch (error) {
+            console.error('[Tasks] Error fetching tasks:', error);
+        }
+    };
+
+    const handleNewTask = async (taskData) => {
+        try {
+            console.log('[Tasks] Creating new task:', taskData);
+            const response = await axiosInstance.post('/tasks', taskData);
+            console.log('[Tasks] Task created, new task list:', response.data);
+            setTasks(response.data);
+            setIsTaskModalOpen(false);
+        } catch (error) {
+            console.error('[Tasks] Error creating task:', error);
+        }
     };
 
     const renderView = () => {

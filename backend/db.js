@@ -48,12 +48,33 @@ async function setupDb() {
             const columnExists = await db.get(
                 "SELECT * FROM pragma_table_info('events') WHERE name='overlayText'"
             );
-            
+
             if (!columnExists) {
                 // Add overlayText column if it doesn't exist
                 await db.exec('ALTER TABLE events ADD COLUMN overlayText TEXT');
                 console.log('[Database] Added overlayText column to events table');
             }
+        }
+
+        // Check if tasks table exists
+        const tasksTableExists = await db.get(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'"
+        );
+
+        if (!tasksTableExists) {
+            await db.exec(`
+                CREATE TABLE tasks (
+                    id TEXT PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    title TEXT NOT NULL,
+                    date TEXT NOT NULL,
+                    time TEXT NOT NULL,
+                    priority TEXT DEFAULT 'medium',
+                    nudge TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('[Database] Tasks table created');
         }
 
         // Check if users table exists
@@ -238,7 +259,7 @@ async function saveEvent(userId, event) {
 
             // Get all remaining events for verification
             const remainingEvents = await db.all(
-                'SELECT id, recurring, recurringEventId FROM events WHERE user_id = ? AND (recurringEventId = ? OR id = ?)', 
+                'SELECT id, recurring, recurringEventId FROM events WHERE user_id = ? AND (recurringEventId = ? OR id = ?)',
                 [userId, event.recurringEventId, event.id]
             );
             console.log('[DELETE] Checking for remaining events in series:', remainingEvents);
@@ -470,6 +491,53 @@ async function updateSettings(userId, settings) {
     return settings;
 }
 
+// Add task-related functions while keeping existing functions unchanged
+async function saveTask(userId, task) {
+    const db = await getDb();
+    console.log('[Database] Saving task:', {
+        userId,
+        task: task.title,
+        date: task.date
+    });
+
+    try {
+        const result = await db.run(
+            `INSERT INTO tasks (
+                id, user_id, title, date, time, priority, nudge
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [
+                `${Date.now()}`,
+                userId,
+                task.title,
+                task.date,
+                task.time,
+                task.priority || 'medium',
+                task.nudge || null
+            ]
+        );
+        console.log('[Database] Task saved successfully');
+        return result.lastID;
+    } catch (error) {
+        console.error('[Database] Error saving task:', error);
+        throw error;
+    }
+}
+
+async function getUserTasks(userId) {
+    const db = await getDb();
+    try {
+        const tasks = await db.all(
+            'SELECT * FROM tasks WHERE user_id = ? ORDER BY created_at DESC',
+            [userId]
+        );
+        return tasks;
+    } catch (error) {
+        console.error('[Database] Error fetching tasks:', error);
+        throw error;
+    }
+}
+
+// Keep existing exports and add new task functions
 module.exports = {
     setupDb,
     getDb,
@@ -478,5 +546,7 @@ module.exports = {
     createUser,
     getUser,
     getSettings,
-    updateSettings
+    updateSettings,
+    saveTask,
+    getUserTasks
 };

@@ -3,7 +3,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent } = require('./db');
+const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks } = require('./db');
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -167,6 +167,32 @@ app.post('/settings', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('[Backend] Error saving settings:', error);
         res.status(500).json({ error: 'Failed to save settings' });
+    }
+});
+
+// Protected task endpoints
+app.post('/tasks', authenticateToken, async (req, res) => {
+    try {
+        console.log('[Backend] Creating task for user:', req.user.id);
+        const taskId = await saveTask(req.user.id, req.body);
+        const tasks = await getUserTasks(req.user.id);
+        console.log('[Backend] Task created, returning tasks');
+        res.json(tasks);
+    } catch (error) {
+        console.error('[Backend] Error creating task:', error);
+        res.status(500).json({ error: 'Failed to create task' });
+    }
+});
+
+app.get('/tasks', authenticateToken, async (req, res) => {
+    try {
+        console.log('[Backend] Getting tasks for user:', req.user.id);
+        const tasks = await getUserTasks(req.user.id);
+        console.log('[Backend] Found tasks:', tasks.length);
+        res.json(tasks);
+    } catch (error) {
+        console.error('[Backend] Error fetching tasks:', error);
+        res.status(500).json({ error: 'Failed to fetch tasks' });
     }
 });
 
