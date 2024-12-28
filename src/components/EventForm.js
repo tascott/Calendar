@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }) => {
+const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData, settings }) => {
     // Parse recurringDays from initialData if it exists
     const parseRecurringDays = (data) => {
         const defaultDays = {
@@ -190,6 +190,12 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
                     recurring: value
                 }));
             }
+        } else if (name === 'type') {
+            setFormData(prev => ({
+                ...prev,
+                type: value,
+                width: value === 'status' ? 20 : 80
+            }));
         } else {
             setFormData(prev => ({
                 ...prev,
@@ -297,9 +303,24 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData }
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Start Time
-                    </label>
+                    <div className="flex justify-between items-center">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Start Time
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    startTime: settings?.dayStartTime || '00:00',
+                                    endTime: settings?.dayEndTime || '23:59'
+                                }));
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-700 mb-1"
+                        >
+                            All Day
+                        </button>
+                    </div>
                     <input
                         type="time"
                         name="startTime"

@@ -788,6 +788,7 @@ function App() {
                                 initialTime={selectedTime}
                                 initialDate={selectedTime ? new Date().toISOString().split('T')[0] : undefined}
                                 initialData={editingEvent}
+                                settings={settings}
                             />
                         </div>
                     </div>
