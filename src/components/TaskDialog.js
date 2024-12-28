@@ -37,9 +37,9 @@ function TaskDialog({ task, onClose, onUpdate }) {
                     <div className="flex items-center space-x-2">
                         <button
                             onClick={() => setIsEditing(!isEditing)}
-                            className="text-[#2C2C2C] hover:text-[#2C2C2C]/70"
+                            className="text-[#2C2C2C] hover:text-[#2C2C2C]/70 text-sm"
                         >
-                            {isEditing ? '✕' : '✎'}
+                            {isEditing ? 'editing...' : '✎'}
                         </button>
                         <button
                             onClick={onClose}
@@ -96,7 +96,7 @@ function TaskDialog({ task, onClose, onUpdate }) {
                                 <option value="high">High</option>
                             </select>
                         ) : (
-                            task.priority && <div className="text-[#2C2C2C]">{task.priority}</div>
+                            <div className="text-[#2C2C2C]">{task.priority || 'None'}</div>
                         )}
                     </div>
 
@@ -109,14 +109,14 @@ function TaskDialog({ task, onClose, onUpdate }) {
                                 onChange={handleChange}
                                 className="w-full px-2 py-1 text-[#2C2C2C] bg-[#F6F5F1] border border-[#2C2C2C] focus:outline-none"
                             >
-                                <option value="">None</option>
+                                <option value="">Off</option>
                                 <option value="5">Every 5 minutes</option>
                                 <option value="10">Every 10 minutes</option>
                                 <option value="15">Every 15 minutes</option>
                                 <option value="30">Every 30 minutes</option>
                             </select>
                         ) : (
-                            task.nudge && <div className="text-[#2C2C2C]">{task.nudge}</div>
+                            <div className="text-[#2C2C2C]">{task.nudge ? `Every ${task.nudge} minutes` : 'Off'}</div>
                         )}
                     </div>
                 </div>
