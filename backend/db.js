@@ -494,31 +494,33 @@ async function updateSettings(userId, settings) {
 // Add task-related functions while keeping existing functions unchanged
 async function saveTask(userId, task) {
     const db = await getDb();
-    console.log('[Database] Saving task:', {
-        userId,
-        task: task.title,
-        date: task.date
-    });
+    console.log('[Tasks] Saving task:', { userId, task });
 
     try {
-        const result = await db.run(
-            `INSERT INTO tasks (
-                id, user_id, title, date, time, priority, nudge
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [
-                `${Date.now()}`,
-                userId,
-                task.title,
-                task.date,
-                task.time,
-                task.priority || 'medium',
-                task.nudge || null
-            ]
-        );
-        console.log('[Database] Task saved successfully');
-        return result.lastID;
+        if (task.id) {
+            // Update existing task
+            await db.run(
+                `UPDATE tasks
+                SET title = ?, date = ?, time = ?, priority = ?, nudge = ?
+                WHERE id = ? AND user_id = ?`,
+                [task.title, task.date, task.time, task.priority, task.nudge, task.id, userId]
+            );
+            console.log('[Tasks] Updated existing task:', task.id);
+        } else {
+            // Create new task
+            const taskId = Date.now().toString();
+            await db.run(
+                `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge)
+                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [taskId, userId, task.title, task.date, task.time, task.priority, task.nudge]
+            );
+            console.log('[Tasks] Created new task:', taskId);
+        }
+
+        // Return all tasks for the user
+        return await getUserTasks(userId);
     } catch (error) {
-        console.error('[Database] Error saving task:', error);
+        console.error('[Tasks] Error saving task:', error);
         throw error;
     }
 }

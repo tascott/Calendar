@@ -12,6 +12,7 @@ import SettingsForm from './components/SettingsForm';
 import StatusOverlay from './components/StatusOverlay';
 import axios from 'axios';
 import TaskForm from './components/TaskForm';
+import { toast } from 'react-hot-toast';
 
 const API_URL = 'http://localhost:3001';
 
@@ -641,6 +642,18 @@ function App() {
         }
     };
 
+    const handleTaskUpdate = async (updatedTask) => {
+        try {
+            console.log('[Tasks] Updating task:', updatedTask);
+            const response = await axiosInstance.post('/tasks', updatedTask);
+            console.log('[Tasks] Update successful:', response.data);
+            setTasks(response.data);
+        } catch (error) {
+            console.error('[Tasks] Error updating task:', error);
+            toast.error('Failed to update task');
+        }
+    };
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
@@ -653,7 +666,8 @@ function App() {
                 dayStartTime: settings.dayStartTime,
                 dayEndTime: settings.dayEndTime
             },
-            tasks
+            tasks,
+            onTaskUpdate: handleTaskUpdate
         };
 
         switch (currentView) {

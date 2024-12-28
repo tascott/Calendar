@@ -4,6 +4,7 @@ import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
 import CurrentTimeLine from '../components/CurrentTimeLine';
 import CalendarNavigation from '../components/CalendarNavigation';
+import TaskDialog from '../components/TaskDialog';
 import { Toaster } from 'react-hot-toast';
 
 const DRAG_TYPE = 'event';
@@ -235,7 +236,8 @@ function OutOfRangeIndicator({ position, count }) {
     );
 }
 
-function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentDate = new Date(), onNavigate, tasks = [] }) {
+function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentDate = new Date(), onNavigate, tasks = [], onTaskUpdate }) {
+    const [selectedTask, setSelectedTask] = useState(null);
     const gridRef = useRef(null);
 
     // Filter events for the current day and include recurring events
@@ -458,7 +460,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                                     title={task.title}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        console.log('Task clicked:', task);
+                                        setSelectedTask(task);
                                     }}
                                 />
                             );
@@ -515,6 +517,17 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                     <Toaster />
                 </div>
             </div>
+            {selectedTask && (
+                <TaskDialog
+                    task={selectedTask}
+                    onClose={() => setSelectedTask(null)}
+                    onUpdate={(updatedTask) => {
+                        onTaskUpdate(updatedTask);
+                        setSelectedTask(null);
+                    }}
+                />
+            )}
+            <Toaster />
         </div>
     );
 }
