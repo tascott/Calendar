@@ -65,6 +65,14 @@ async function setupDb() {
                 dayendtime TEXT DEFAULT '22:00',
                 font TEXT DEFAULT 'system-ui'
             );
+
+            CREATE TABLE IF NOT EXISTS notes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
         `);
         console.log('[Database] Tables verified/created');
     } catch(error) {
@@ -302,6 +310,27 @@ async function updateEvent(userId, eventId, updates) {
     return updatedEvent;
 }
 
+// Function to get user notes
+async function getNotes(userId) {
+    const db = await getDb();
+    const result = await db.query(
+        'SELECT * FROM notes WHERE user_id = $1 ORDER BY timestamp DESC',
+        [userId]
+    );
+    return result.rows;
+}
+
+// Function to save a note
+async function saveNote(userId, content) {
+    const db = await getDb();
+    await db.query(
+        'INSERT INTO notes (user_id, content) VALUES ($1, $2)',
+        [userId, content]
+    );
+    // Return all notes after saving
+    return getNotes(userId);
+}
+
 module.exports = {
     setupDb,
     getAllEvents,
@@ -315,4 +344,6 @@ module.exports = {
     updateSettings,
     replaceAllEvents,
     updateEvent,
+    getNotes,
+    saveNote,
 };

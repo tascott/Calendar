@@ -6,11 +6,15 @@ function CurrentTimeLine({ settings, events = [] }) {
     const [notifiedEvents, setNotifiedEvents] = useState(new Set());
     const [activeEvents, setActiveEvents] = useState(new Set());
     const lastEventStates = useRef(new Map());
+    const lastEventsLength = useRef(0);
 
     // Log events for debugging
     useEffect(() => {
-        console.log('[CurrentTimeLine] Received events:', events);
-        console.log('[CurrentTimeLine] Settings:', settings);
+        if (process.env.NODE_ENV === 'development' && events.length !== lastEventsLength.current) {
+            console.log('[CurrentTimeLine] Events changed:', events);
+            console.log('[CurrentTimeLine] Settings:', settings);
+            lastEventsLength.current = events.length;
+        }
     }, [events, settings]);
 
     // Convert time string to minutes since start of day

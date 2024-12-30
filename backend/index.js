@@ -4,7 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks } = require('./db');
+const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks, getNotes, saveNote } = require('./db');
 const path = require('path');
 
 const app = express();
@@ -156,6 +156,43 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error fetching tasks:', error);
         res.status(500).json({ error: 'Failed to fetch tasks' });
+    }
+});
+
+// Get user settings
+app.get('/api/settings', authenticateToken, async (req, res) => {
+    try {
+        const settings = await getSettings(req.user.id);
+        res.json(settings);
+    } catch (error) {
+        console.error('Error getting settings:', error);
+        res.status(500).json({ error: 'Failed to get settings' });
+    }
+});
+
+// Get user notes
+app.get('/api/notes', authenticateToken, async (req, res) => {
+    try {
+        const notes = await getNotes(req.user.id);
+        res.json(notes);
+    } catch (error) {
+        console.error('Error getting notes:', error);
+        res.status(500).json({ error: 'Failed to get notes' });
+    }
+});
+
+// Save a note
+app.post('/api/notes', authenticateToken, async (req, res) => {
+    try {
+        const { content } = req.body;
+        if (!content) {
+            return res.status(400).json({ error: 'Note content is required' });
+        }
+        const notes = await saveNote(req.user.id, content);
+        res.json(notes);
+    } catch (error) {
+        console.error('Error saving note:', error);
+        res.status(500).json({ error: 'Failed to save note' });
     }
 });
 

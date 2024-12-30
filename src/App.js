@@ -20,6 +20,8 @@ const API_URL = process.env.NODE_ENV === 'production'
 function App() {
     const [currentView, setCurrentView] = useState('day');
     const [events, setEvents] = useState([]);
+    const [notes, setNotes] = useState([]);
+    const [newNote, setNewNote] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [selectedTime, setSelectedTime] = useState(null);
@@ -786,6 +788,62 @@ function App() {
         }
     }, [token]);
 
+    // Note handling functions
+    const fetchNotes = async () => {
+        try {
+            const response = await fetch(`${API_URL}/notes`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            console.log('[Notes] Fetched notes:', data);
+            setNotes(data);
+        } catch (error) {
+            console.error('[Notes] Error fetching notes:', error);
+        }
+    };
+
+    const handleSaveNote = async () => {
+        if (!newNote.trim()) return;
+
+        try {
+            const response = await fetch(`${API_URL}/notes`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    content: newNote.trim(),
+                    timestamp: new Date().toISOString()
+                })
+            });
+            const data = await response.json();
+            console.log('[Notes] All notes after save:', data);
+            setNotes(data);
+            setNewNote(''); // Clear input after saving
+            toast.success('Note saved');
+        } catch (error) {
+            console.error('[Notes] Error saving note:', error);
+            toast.error('Failed to save note');
+        }
+    };
+
+    const handleNoteKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSaveNote();
+        }
+    };
+
+    // Add effect to fetch notes when authenticated
+    useEffect(() => {
+        if (token) {
+            fetchNotes();
+        }
+    }, [token]);
+
     return (
         <DndProvider backend={dndBackend} options={dndOptions}>
             <StatusOverlay isActive={!!activeFocusEvent} event={activeFocusEvent} />
@@ -853,13 +911,24 @@ function App() {
                                     <label htmlFor="newNote" className="block text-sm font-medium text-[#2C2C2C]">
                                         New Note
                                     </label>
-                                    <input
-                                        type="text"
-                                        id="newNote"
-                                        name="newNote"
-                                        className="w-64 px-3 py-2 bg-white border-2 border-[#2C2C2C] rounded text-sm text-[#2C2C2C] placeholder-[#6B7280] focus:outline-none focus:border-[#4A4A4A] focus:ring-1 focus:ring-[#4A4A4A] transition-shadow duration-200"
-                                        placeholder="Enter a new note..."
-                                    />
+                                    <div className="flex space-x-2">
+                                        <input
+                                            type="text"
+                                            id="newNote"
+                                            name="newNote"
+                                            value={newNote}
+                                            onChange={(e) => setNewNote(e.target.value)}
+                                            onKeyPress={handleNoteKeyPress}
+                                            className="w-64 px-3 py-2 bg-white border-2 border-[#2C2C2C] rounded text-sm text-[#2C2C2C] placeholder-[#6B7280] focus:outline-none focus:border-[#4A4A4A] focus:ring-1 focus:ring-[#4A4A4A] transition-shadow duration-200"
+                                            placeholder="Enter a new note..."
+                                        />
+                                        <button
+                                            onClick={handleSaveNote}
+                                            className="px-4 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                        >
+                                            Save
+                                        </button>
+                                    </div>
                                 </div>
                                 <ViewSelector
                                     currentView={currentView}
