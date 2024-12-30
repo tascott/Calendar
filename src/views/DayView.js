@@ -461,29 +461,29 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                         gridTemplateRows: `repeat(${visibleHours}, 3rem)`
                     }}
                 >
-                    {/* Task dots */}
-                    {tasks
-                        .filter(task => task.date === currentDate.toISOString().split('T')[0])
-                        .map(task => {
-                            const minutes = timeToMinutes(task.time);
-                            const topPercentage = ((minutes - startMinutes) / (endMinutes - startMinutes)) * 100;
-                            return (
-                                <div
-                                    key={task.id}
-                                    className="absolute w-4 h-4 bg-red-500 task-dot rounded-full transform -translate-x-1/2 -translate-y-1/2"
-                                    style={{
-                                        top: `${topPercentage}%`,
-                                        left: '10px',
-                                        zIndex: 1000
-                                    }}
-                                    title={task.title}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedTask(task);
-                                    }}
-                                />
-                            );
-                        })}
+                    {/* Task indicators */}
+                    {tasks.filter(task => task.date === currentDate.toISOString().split('T')[0]).map(task => {
+                        const minutes = timeToMinutes(task.time);
+                        const top = ((minutes - startMinutes) / (endMinutes - startMinutes)) * 100;
+
+                        return (
+                            <div
+                                key={task.id}
+                                className="absolute left-0 flex items-center"
+                                style={{ top: `${top}%`, zIndex: 1100 }}
+                            >
+                                <div className="flex items-center">
+                                    <div
+                                        className={`w-3 h-3 rounded-full ${task.priority === 'high' ? 'bg-red-600' : 'bg-red-400'}`}
+                                        title={task.title}
+                                    />
+                                    <span className="ml-2 text-xs text-gray-600 truncate max-w-[100px]">
+                                        {task.title}
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    })}
 
                     {/* Out of range indicators */}
                     {beforeRange.length > 0 && (
