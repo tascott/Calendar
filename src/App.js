@@ -710,15 +710,21 @@ function App() {
             const data = await response.json();
             console.log('[Tasks] Update successful:', data);
 
-            // Normalize field names from database format to frontend format
-            const normalizedTasks = data.map(task => ({
-                ...task,
-                startTime: task.starttime,
-                endTime: task.endtime,
-                createdAt: task.created_at
-            }));
-
-            setTasks(normalizedTasks);
+            if (updatedTask.deleted) {
+                // If task was deleted, filter it out from the local state
+                setTasks(prevTasks => prevTasks.filter(task => task.id !== updatedTask.id));
+                toast.success('Task deleted');
+            } else {
+                // Otherwise update with normalized data
+                const normalizedTasks = data.map(task => ({
+                    ...task,
+                    startTime: task.starttime,
+                    endTime: task.endtime,
+                    createdAt: task.created_at
+                }));
+                setTasks(normalizedTasks);
+                toast.success('Task updated');
+            }
         } catch (error) {
             console.error('[Tasks] Error updating task:', error);
             toast.error('Failed to update task');

@@ -4,8 +4,8 @@ import TimeColumn from '../components/TimeColumn';
 import GridOverlay from '../components/GridOverlay';
 import CurrentTimeLine from '../components/CurrentTimeLine';
 import CalendarNavigation from '../components/CalendarNavigation';
-import TaskDialog from '../components/TaskDialog';
 import { Toaster } from 'react-hot-toast';
+import TaskForm from '../components/TaskForm';
 
 const DRAG_TYPE = 'event';
 const SNAP_INCREMENTS = Array.from({ length: 21 }, (_, i) => i * 5); // 0, 5, 10, ..., 100
@@ -443,6 +443,20 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
         onDoubleClick(event.startTime, event); // Pass the entire event object for editing
     };
 
+    const handleTaskClick = (task) => {
+        setSelectedTask(task);
+    };
+
+    const handleTaskSave = async (updatedTask) => {
+        await onTaskUpdate(updatedTask);
+        setSelectedTask(null);
+    };
+
+    const handleTaskDelete = async (taskId) => {
+        await onTaskUpdate({ ...selectedTask, deleted: true });
+        setSelectedTask(null);
+    };
+
     return (
         <div className="flex flex-col w-full">
             <CalendarNavigation
@@ -469,8 +483,9 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                         return (
                             <div
                                 key={task.id}
-                                className="absolute left-0 flex items-center"
+                                className="absolute left-0 flex items-center cursor-pointer hover:opacity-75"
                                 style={{ top: `${top}%`, zIndex: 1100 }}
+                                onClick={() => handleTaskClick(task)}
                             >
                                 <div className="flex items-center">
                                     <div
@@ -484,6 +499,28 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                             </div>
                         );
                     })}
+
+                    {/* Task Edit Modal */}
+                    {selectedTask && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-[1200]">
+                            <div className="bg-[#F6F5F1] rounded-md border-2 border-[#2C2C2C] p-6 max-w-md w-full">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-normal text-[#2C2C2C]">Edit Task</h2>
+                                    <button
+                                        onClick={() => handleTaskDelete(selectedTask.id)}
+                                        className="px-4 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50"
+                                    >
+                                        Delete Task
+                                    </button>
+                                </div>
+                                <TaskForm
+                                    onSubmit={handleTaskSave}
+                                    onCancel={() => setSelectedTask(null)}
+                                    initialData={selectedTask}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     {/* Out of range indicators */}
                     {beforeRange.length > 0 && (
@@ -536,16 +573,6 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                     <Toaster />
                 </div>
             </div>
-            {selectedTask && (
-                <TaskDialog
-                    task={selectedTask}
-                    onClose={() => setSelectedTask(null)}
-                    onUpdate={(updatedTask) => {
-                        onTaskUpdate(updatedTask);
-                        setSelectedTask(null);
-                    }}
-                />
-            )}
             <Toaster />
         </div>
     );
