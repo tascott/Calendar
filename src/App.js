@@ -338,20 +338,12 @@ function App() {
     };
 
     const handleLogout = () => {
-        console.log('Logging out - clearing token and state');
-        // Clear auth state
         setToken(null);
         localStorage.removeItem('token');
-
-        // Clear application state
         setEvents([]);
+        setTasks([]);
         setIsLoginModalOpen(true);
-
-        // Reset any other necessary state
-        setIsModalOpen(false);
-        setIsSettingsOpen(false);
-        setEditingEvent(null);
-        setSelectedTime(null);
+        toast.success('Logged out successfully');
     };
 
     // Effect to fetch events when authenticated
@@ -825,6 +817,12 @@ function App() {
                                         New Task
                                     </button>
                                     <button
+                                        onClick={() => setIsSettingsOpen(true)}
+                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    >
+                                        Settings
+                                    </button>
+                                    <button
                                         onClick={() => {
                                             console.log('=== DEBUG INFO ===');
                                             console.log('User:', {
@@ -839,6 +837,12 @@ function App() {
                                         className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
                                     >
                                         Debug Info
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
+                                    >
+                                        Logout
                                     </button>
                                 </div>
                             </div>
