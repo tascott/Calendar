@@ -847,29 +847,19 @@ function App() {
                                 </div>
                             </div>
 
-                            {/* Second row: Note input */}
-                            <div className="flex items-center space-x-3 max-w-md">
-                                <label htmlFor="newNote" className="block text-sm font-medium text-[#2C2C2C]">
-                                    New Note
-                                </label>
-                                <input
-                                    type="text"
-                                    id="newNote"
-                                    name="newNote"
-                                    className="flex-1 px-3 py-2 bg-white border-2 border-[#2C2C2C] rounded text-sm text-[#2C2C2C] placeholder-[#6B7280] focus:outline-none focus:border-[#4A4A4A] focus:ring-1 focus:ring-[#4A4A4A] transition-shadow duration-200"
-                                    placeholder="Enter a new note..."
-                                />
-                            </div>
-
-                            {/* Third row: Settings and view controls */}
+                            {/* Third row: Note input and view controls */}
                             <div className="flex justify-between items-center">
-                                <div className="flex space-x-4">
-                                    <button
-                                        onClick={() => setIsSettingsOpen(true)}
-                                        className="px-4 py-2 text-sm font-normal border transition-colors duration-200"
-                                    >
-                                        Settings
-                                    </button>
+                                <div className="flex items-center space-x-3 max-w-md">
+                                    <label htmlFor="newNote" className="block text-sm font-medium text-[#2C2C2C]">
+                                        New Note
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="newNote"
+                                        name="newNote"
+                                        className="w-64 px-3 py-2 bg-white border-2 border-[#2C2C2C] rounded text-sm text-[#2C2C2C] placeholder-[#6B7280] focus:outline-none focus:border-[#4A4A4A] focus:ring-1 focus:ring-[#4A4A4A] transition-shadow duration-200"
+                                        placeholder="Enter a new note..."
+                                    />
                                 </div>
                                 <ViewSelector
                                     currentView={currentView}
@@ -882,7 +872,7 @@ function App() {
                 </header>
 
                 {/* Main Content */}
-                <main className="flex-1 overflow-hidden">
+                <main className="flex-1 overflow-hidden pb-8">
                     {renderView()}
                 </main>
 
