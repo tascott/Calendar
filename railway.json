@@ -1,22 +1,10 @@
 {
 	"services": [
 		{
-			"name": "frontend",
+			"name": "calendar",
 			"path": ".",
-			"buildCommand": "npm install && npm run build",
-			"startCommand": "npx serve -s build",
-			"envVars": {
-				"REACT_APP_API_URL": "https://your-backend-url.up.railway.app"
-			}
-		},
-		{
-			"name": "backend",
-			"path": "backend",
-			"buildCommand": "npm install",
-			"startCommand": "node index.js",
-			"envVars": {
-				"DATABASE_URL": "your-postgresql-connection-string"
-			}
+			"buildCommand": "npm install && npm run build && cd backend && npm install",
+			"startCommand": "cd backend && node index.js"
 		}
 	]
 }
