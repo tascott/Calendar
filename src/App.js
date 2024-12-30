@@ -679,23 +679,27 @@ function App() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(taskData)
+                body: JSON.stringify({
+                    ...taskData,
+                    // Convert frontend camelCase to database lowercase
+                    startTime: taskData.time,
+                    endTime: taskData.time, // For now, end time is same as start
+                    id: Date.now().toString() // Ensure we have an ID
+                })
             });
             const data = await response.json();
-            console.log('[Tasks] Task created, new task list:', data);
+            console.log('[Tasks] Server response:', data);
 
-            // Normalize field names from database format to frontend format
-            const normalizedTasks = data.map(task => ({
-                ...task,
-                startTime: task.starttime,
-                endTime: task.endtime,
-                createdAt: task.created_at
-            }));
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to create task');
+            }
 
-            setTasks(normalizedTasks);
+            // After successful creation, fetch all tasks to ensure we're in sync
+            await fetchTasks();
             setIsTaskModalOpen(false);
         } catch (error) {
             console.error('[Tasks] Error creating task:', error);
+            toast.error(error.message || 'Failed to create task');
         }
     };
 
