@@ -14,8 +14,7 @@ import axios from 'axios';
 import TaskForm from './components/TaskForm';
 import { toast } from 'react-hot-toast';
 
-const API_URL = 'http://localhost:3001';
-
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 function App() {
     const [currentView, setCurrentView] = useState('day');
     const [events, setEvents] = useState([]);

@@ -1,0 +1,22 @@
+{
+	"services": [
+		{
+			"name": "frontend",
+			"path": ".",
+			"buildCommand": "npm install && npm run build",
+			"startCommand": "npx serve -s build",
+			"envVars": {
+				"REACT_APP_API_URL": "https://your-backend-url.up.railway.app"
+			}
+		},
+		{
+			"name": "backend",
+			"path": "backend",
+			"buildCommand": "npm install",
+			"startCommand": "node index.js",
+			"envVars": {
+				"DATABASE_URL": "your-postgresql-connection-string"
+			}
+		}
+	]
+}
