@@ -30,3 +30,6 @@ yarn-error.log*
 
 # Environment variables
 .env
+
+# Docker data
+/backend/data
