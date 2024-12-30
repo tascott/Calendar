@@ -13,6 +13,7 @@ import StatusOverlay from './components/StatusOverlay';
 import axios from 'axios';
 import TaskForm from './components/TaskForm';
 import { toast } from 'react-hot-toast';
+import NotesPanel from './components/NotesPanel';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? '/api'  // In production, use relative path
@@ -845,215 +846,218 @@ function App() {
     }, [token]);
 
     return (
-        <DndProvider backend={dndBackend} options={dndOptions}>
-            <StatusOverlay isActive={!!activeFocusEvent} event={activeFocusEvent} />
-            <div
-                className="min-h-screen w-full flex flex-col bg-[#F6F5F1]"
-                style={{ fontFamily: settings.font }}
-            >
-                {/* Header */}
-                <header className="flex-none w-full bg-[#F6F5F1] border-b border-[#D1C7]">
-                    <div className="max-w-[1600px] w-full mx-auto px-8 py-6">
-                        <div className="flex flex-col space-y-4">
-                            {/* First row: Calendar title and buttons */}
-                            <div className="flex justify-between items-center">
-                                <h1 className="text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
-                                <div className="flex space-x-4">
-                                    <button
-                                        onClick={() => {
-                                            setEditingEvent(null);
-                                            setIsModalOpen(true);
-                                        }}
-                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                    >
-                                        New Event
-                                    </button>
-                                    <button
-                                        onClick={() => setIsTaskModalOpen(true)}
-                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                    >
-                                        New Task
-                                    </button>
-                                    <button
-                                        onClick={() => setIsSettingsOpen(true)}
-                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                    >
-                                        Settings
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            console.log('=== DEBUG INFO ===');
-                                            console.log('User:', {
-                                                id: token ? JSON.parse(atob(token.split('.')[1])).id : null,
-                                                username: token ? JSON.parse(atob(token.split('.')[1])).username : null
-                                            });
-                                            console.log('Events:', events);
-                                            console.log('Tasks:', tasks);
-                                            console.log('Settings:', settings);
-                                            console.log('================');
-                                        }}
-                                        className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                    >
-                                        Debug Info
-                                    </button>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
-                                    >
-                                        Logout
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Third row: Note input and view controls */}
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center space-x-3 max-w-md">
-                                    <label htmlFor="newNote" className="block text-sm font-medium text-[#2C2C2C]">
-                                        New Note
-                                    </label>
-                                    <div className="flex space-x-2">
-                                        <input
-                                            type="text"
-                                            id="newNote"
-                                            name="newNote"
-                                            value={newNote}
-                                            onChange={(e) => setNewNote(e.target.value)}
-                                            onKeyPress={handleNoteKeyPress}
-                                            className="w-64 px-3 py-2 bg-white border-2 border-[#2C2C2C] rounded text-sm text-[#2C2C2C] placeholder-[#6B7280] focus:outline-none focus:border-[#4A4A4A] focus:ring-1 focus:ring-[#4A4A4A] transition-shadow duration-200"
-                                            placeholder="Enter a new note..."
-                                        />
+        <>
+            <NotesPanel />
+            <DndProvider backend={dndBackend} options={dndOptions}>
+                <StatusOverlay isActive={!!activeFocusEvent} event={activeFocusEvent} />
+                <div
+                    className="min-h-screen w-full flex flex-col bg-[#F6F5F1]"
+                    style={{ fontFamily: settings.font }}
+                >
+                    {/* Header */}
+                    <header className="flex-none w-full bg-[#F6F5F1] border-b border-[#D1C7]">
+                        <div className="max-w-[1600px] w-full mx-auto px-8 py-6">
+                            <div className="flex flex-col space-y-4">
+                                {/* First row: Calendar title and buttons */}
+                                <div className="flex justify-between items-center">
+                                    <h1 className="text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
+                                    <div className="flex space-x-4">
                                         <button
-                                            onClick={handleSaveNote}
-                                            className="px-4 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                            onClick={() => {
+                                                setEditingEvent(null);
+                                                setIsModalOpen(true);
+                                            }}
+                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
                                         >
-                                            Save
+                                            New Event
+                                        </button>
+                                        <button
+                                            onClick={() => setIsTaskModalOpen(true)}
+                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                        >
+                                            New Task
+                                        </button>
+                                        <button
+                                            onClick={() => setIsSettingsOpen(true)}
+                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                        >
+                                            Settings
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                console.log('=== DEBUG INFO ===');
+                                                console.log('User:', {
+                                                    id: token ? JSON.parse(atob(token.split('.')[1])).id : null,
+                                                    username: token ? JSON.parse(atob(token.split('.')[1])).username : null
+                                                });
+                                                console.log('Events:', events);
+                                                console.log('Tasks:', tasks);
+                                                console.log('Settings:', settings);
+                                                console.log('================');
+                                            }}
+                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                        >
+                                            Debug Info
+                                        </button>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
+                                        >
+                                            Logout
                                         </button>
                                     </div>
                                 </div>
-                                <ViewSelector
-                                    currentView={currentView}
-                                    onViewChange={setCurrentView}
-                                    primaryColor={settings.primaryColor}
+
+                                {/* Third row: Note input and view controls */}
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center space-x-3 max-w-md">
+                                        <label htmlFor="newNote" className="block text-sm font-medium text-[#2C2C2C]">
+                                            New Note
+                                        </label>
+                                        <div className="flex space-x-2">
+                                            <input
+                                                type="text"
+                                                id="newNote"
+                                                name="newNote"
+                                                value={newNote}
+                                                onChange={(e) => setNewNote(e.target.value)}
+                                                onKeyPress={handleNoteKeyPress}
+                                                className="w-64 px-3 py-2 bg-white border-2 border-[#2C2C2C] rounded text-sm text-[#2C2C2C] placeholder-[#6B7280] focus:outline-none focus:border-[#4A4A4A] focus:ring-1 focus:ring-[#4A4A4A] transition-shadow duration-200"
+                                                placeholder="Enter a new note..."
+                                            />
+                                            <button
+                                                onClick={handleSaveNote}
+                                                className="px-4 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                                Save
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <ViewSelector
+                                        currentView={currentView}
+                                        onViewChange={setCurrentView}
+                                        primaryColor={settings.primaryColor}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="flex-1 overflow-hidden pb-8">
+                        {renderView()}
+                    </main>
+
+                    {/* Modals with vintage styling */}
+                    {isModalOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                                <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
+                                    {editingEvent ? 'Edit Event' : 'New Event'}
+                                </h2>
+                                <EventForm
+                                    onSubmit={handleNewEvent}
+                                    onCancel={handleModalClose}
+                                    initialTime={selectedTime}
+                                    initialDate={selectedTime ? new Date().toISOString().split('T')[0] : undefined}
+                                    initialData={editingEvent}
+                                    settings={settings}
                                 />
                             </div>
                         </div>
-                    </div>
-                </header>
+                    )}
 
-                {/* Main Content */}
-                <main className="flex-1 overflow-hidden pb-8">
-                    {renderView()}
-                </main>
-
-                {/* Modals with vintage styling */}
-                {isModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
-                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
-                                {editingEvent ? 'Edit Event' : 'New Event'}
-                            </h2>
-                            <EventForm
-                                onSubmit={handleNewEvent}
-                                onCancel={handleModalClose}
-                                initialTime={selectedTime}
-                                initialDate={selectedTime ? new Date().toISOString().split('T')[0] : undefined}
-                                initialData={editingEvent}
-                                settings={settings}
-                            />
+                    {/* Settings Modal */}
+                    {isSettingsOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                                <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
+                                    Settings
+                                </h2>
+                                <SettingsForm
+                                    onSubmit={handleSettingsSave}
+                                    onCancel={() => setIsSettingsOpen(false)}
+                                    initialSettings={settings}
+                                />
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Settings Modal */}
-                {isSettingsOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
-                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
-                                Settings
-                            </h2>
-                            <SettingsForm
-                                onSubmit={handleSettingsSave}
-                                onCancel={() => setIsSettingsOpen(false)}
-                                initialSettings={settings}
-                            />
+                    {/* Login/Register Modal with improved validation */}
+                    {isLoginModalOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                                <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
+                                    {isRegistering ? 'Register' : 'Login'}
+                                </h2>
+                                <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
+                                    {loginError && (
+                                        <div className="text-red-600 text-sm mb-4">{loginError}</div>
+                                    )}
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
+                                            Username
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="username"
+                                            required
+                                            minLength={3}
+                                            maxLength={50}
+                                            pattern="[A-Za-z0-9]*"
+                                            title="Username can only contain letters and numbers"
+                                            className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
+                                            Password
+                                        </label>
+                                        <input
+                                            type="password"
+                                            name="password"
+                                            required
+                                            minLength={6}
+                                            className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
+                                        />
+                                    </div>
+                                    <div className="flex justify-between items-center pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsRegistering(!isRegistering);
+                                                setLoginError(''); // Clear any previous errors
+                                            }}
+                                            className="text-sm text-[#2C2C2C] hover:underline"
+                                        >
+                                            {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
+                                        >
+                                            {isRegistering ? 'Register' : 'Login'}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {/* Login/Register Modal with improved validation */}
-                {isLoginModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
-                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
-                                {isRegistering ? 'Register' : 'Login'}
-                            </h2>
-                            <form onSubmit={isRegistering ? handleRegister : handleLogin} className="space-y-4">
-                                {loginError && (
-                                    <div className="text-red-600 text-sm mb-4">{loginError}</div>
-                                )}
-                                <div>
-                                    <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
-                                        Username
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        required
-                                        minLength={3}
-                                        maxLength={50}
-                                        pattern="[A-Za-z0-9]*"
-                                        title="Username can only contain letters and numbers"
-                                        className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
-                                        Password
-                                    </label>
-                                    <input
-                                        type="password"
-                                        name="password"
-                                        required
-                                        minLength={6}
-                                        className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
-                                    />
-                                </div>
-                                <div className="flex justify-between items-center pt-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsRegistering(!isRegistering);
-                                            setLoginError(''); // Clear any previous errors
-                                        }}
-                                        className="text-sm text-[#2C2C2C] hover:underline"
-                                    >
-                                        {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 text-sm font-normal text-[#2C2C2C] border border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
-                                    >
-                                        {isRegistering ? 'Register' : 'Login'}
-                                    </button>
-                                </div>
-                            </form>
+                    {isTaskModalOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
+                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                                <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">New Task</h2>
+                                <TaskForm
+                                    onSubmit={handleNewTask}
+                                    onCancel={() => setIsTaskModalOpen(false)}
+                                />
+                            </div>
                         </div>
-                    </div>
-                )}
-
-                {isTaskModalOpen && (
-                    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-                        <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
-                            <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">New Task</h2>
-                            <TaskForm
-                                onSubmit={handleNewTask}
-                                onCancel={() => setIsTaskModalOpen(false)}
-                            />
-                        </div>
-                    </div>
-                )}
-            </div>
-        </DndProvider>
+                    )}
+                </div>
+            </DndProvider>
+        </>
     );
 }
 
