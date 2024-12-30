@@ -180,11 +180,34 @@ function App() {
     const fetchEvents = async () => {
         console.log('[Events] Attempting to fetch events');
         try {
-            const response = await axiosInstance.get('/events');
-            console.log('[Events] Fetch successful, count:', response.data.length);
-            setEvents(response.data);
+            const response = await fetch(`${API_URL}/events`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.status === 401) {
+                console.log('[Events] Unauthorized - showing login modal');
+                setIsLoginModalOpen(true);
+                return;
+            }
+            const data = await response.json();
+            console.log('[Events] Fetch successful, count:', data.length);
+
+            // Normalize field names from database format to frontend format
+            const normalizedEvents = data.map(event => ({
+                ...event,
+                startTime: event.starttime,
+                endTime: event.endtime,
+                xPosition: event.xposition,
+                backgroundColor: event.backgroundcolor,
+                overlayText: event.overlaytext,
+                recurringDays: event.recurringdays,
+                recurringEventId: event.recurringeventid
+            }));
+
+            setEvents(normalizedEvents);
         } catch (error) {
-            console.error('[Events] Fetch failed:', error.response?.status, error.response?.data);
+            console.error('[Events] Fetch failed:', error);
             if (error.response?.status === 401) {
                 console.log('[Events] Unauthorized - showing login modal');
                 setIsLoginModalOpen(true);
@@ -194,59 +217,47 @@ function App() {
 
     const saveEvents = async (newEvents) => {
         try {
-            // If it's a single event, wrap it in an array
-            const eventsToSave = Array.isArray(newEvents) ? newEvents : [newEvents];
-
-            // Only send essential data to the server
-            const optimizedEvents = eventsToSave.map(event => {
-                // If this is a deletion, preserve only necessary fields
-                if (event.deleted) {
-                    return {
-                        id: event.id,
-                        deleted: true,
-                        recurring: event.recurring,
-                        recurringEventId: event.recurringEventId
-                    };
-                }
-
-                console.log('[Events] Processing event for save:', event); // Debug log
-
-                // Start with basic required fields
-                const optimizedEvent = {
-                    id: event.id,
-                    name: event.name,
-                    date: event.date,
-                    startTime: event.startTime,
-                    endTime: event.endTime,
-                    type: event.type,
-                    overlayText: event.type === 'focus' ? (event.overlayText || 'Focus.') : undefined
-                };
-
-                // Only add optional fields if they exist and are not default values
-                if (event.xPosition !== undefined && event.xPosition !== 0) optimizedEvent.xPosition = event.xPosition;
-                if (event.width !== undefined && event.width !== 50) optimizedEvent.width = event.width;
-                if (event.backgroundColor) optimizedEvent.backgroundColor = event.backgroundColor;
-                if (event.color) optimizedEvent.color = event.color;
-                if (event.recurring && event.recurring !== 'none') {
-                    optimizedEvent.recurring = event.recurring;
-                    optimizedEvent.recurringDays = typeof event.recurringDays === 'string'
-                        ? event.recurringDays
-                        : JSON.stringify(event.recurringDays || {});
-                    optimizedEvent.recurringEventId = event.recurringEventId;
-                }
-
-                return optimizedEvent;
+            console.log('[Events] Saving events:', newEvents);
+            const response = await fetch(`${API_URL}/events`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(Array.isArray(newEvents) ? newEvents : [newEvents])
             });
+            console.log('[Response] Success:', response.url, response.status);
+            const data = await response.json();
+            console.log('[Events] Save successful, updating state with response:', data);
 
-            console.log('[Events] Saving optimized events:', optimizedEvents);
-            const response = await axiosInstance.post('/events', optimizedEvents);
-            console.log('[Events] Save successful, updating state with response:', response.data);
-            setEvents(response.data);
+            // Normalize field names from database format to frontend format
+            const normalizedEvents = data.map(event => ({
+                ...event,
+                startTime: event.starttime,
+                endTime: event.endtime,
+                xPosition: event.xposition,
+                backgroundColor: event.backgroundcolor,
+                overlayText: event.overlaytext,
+                recurringDays: event.recurringdays,
+                recurringEventId: event.recurringeventid
+            }));
+
+            // Update state with normalized events
+            setEvents(prevEvents => {
+                const updatedEvents = [...prevEvents];
+                normalizedEvents.forEach(newEvent => {
+                    const index = updatedEvents.findIndex(e => e.id === newEvent.id);
+                    if (index !== -1) {
+                        updatedEvents[index] = newEvent;
+                    } else {
+                        updatedEvents.push(newEvent);
+                    }
+                });
+                return updatedEvents;
+            });
         } catch (error) {
-            console.error('[Events] Error saving events:', error);
-            if (error.response?.status === 413) {
-                console.error('[Events] Payload too large, data:', error.response?.data);
-            }
+            console.error('[Events] Save error:', error);
+            toast.error('Failed to save events');
         }
     };
 
@@ -273,14 +284,28 @@ function App() {
             // Fetch initial data
             try {
                 console.log('[Login] Fetching initial events');
-                const eventsResponse = await axios.get(`${API_URL}/events`, {
+                const eventsResponse = await fetch(`${API_URL}/events`, {
                     headers: { Authorization: `Bearer ${newToken}` }
                 });
+                const data = await eventsResponse.json();
                 console.log('[Login] Events fetched successfully');
-                setEvents(eventsResponse.data);
+
+                // Normalize field names from database format to frontend format
+                const normalizedEvents = data.map(event => ({
+                    ...event,
+                    startTime: event.starttime,
+                    endTime: event.endtime,
+                    xPosition: event.xposition,
+                    backgroundColor: event.backgroundcolor,
+                    overlayText: event.overlaytext,
+                    recurringDays: event.recurringdays,
+                    recurringEventId: event.recurringeventid
+                }));
+
+                setEvents(normalizedEvents);
                 setIsLoginModalOpen(false);
             } catch (error) {
-                console.error('[Login] Failed to fetch initial events:', error.response?.status);
+                console.error('[Login] Failed to fetch initial events:', error);
                 throw error; // Re-throw to be caught by outer catch
             }
         } catch (error) {
@@ -623,9 +648,23 @@ function App() {
     const fetchTasks = async () => {
         try {
             console.log('[Tasks] Fetching tasks');
-            const response = await axiosInstance.get('/tasks');
-            console.log('[Tasks] Fetch successful:', response.data);
-            setTasks(response.data);
+            const response = await fetch(`${API_URL}/tasks`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            console.log('[Tasks] Fetch successful:', data);
+
+            // Normalize field names from database format to frontend format
+            const normalizedTasks = data.map(task => ({
+                ...task,
+                startTime: task.starttime,
+                endTime: task.endtime,
+                createdAt: task.created_at
+            }));
+
+            setTasks(normalizedTasks);
         } catch (error) {
             console.error('[Tasks] Error fetching tasks:', error);
         }
@@ -634,9 +673,26 @@ function App() {
     const handleNewTask = async (taskData) => {
         try {
             console.log('[Tasks] Creating new task:', taskData);
-            const response = await axiosInstance.post('/tasks', taskData);
-            console.log('[Tasks] Task created, new task list:', response.data);
-            setTasks(response.data);
+            const response = await fetch(`${API_URL}/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(taskData)
+            });
+            const data = await response.json();
+            console.log('[Tasks] Task created, new task list:', data);
+
+            // Normalize field names from database format to frontend format
+            const normalizedTasks = data.map(task => ({
+                ...task,
+                startTime: task.starttime,
+                endTime: task.endtime,
+                createdAt: task.created_at
+            }));
+
+            setTasks(normalizedTasks);
             setIsTaskModalOpen(false);
         } catch (error) {
             console.error('[Tasks] Error creating task:', error);
@@ -646,12 +702,58 @@ function App() {
     const handleTaskUpdate = async (updatedTask) => {
         try {
             console.log('[Tasks] Updating task:', updatedTask);
-            const response = await axiosInstance.post('/tasks', updatedTask);
-            console.log('[Tasks] Update successful:', response.data);
-            setTasks(response.data);
+            const response = await fetch(`${API_URL}/tasks`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(updatedTask)
+            });
+            const data = await response.json();
+            console.log('[Tasks] Update successful:', data);
+
+            // Normalize field names from database format to frontend format
+            const normalizedTasks = data.map(task => ({
+                ...task,
+                startTime: task.starttime,
+                endTime: task.endtime,
+                createdAt: task.created_at
+            }));
+
+            setTasks(normalizedTasks);
         } catch (error) {
             console.error('[Tasks] Error updating task:', error);
             toast.error('Failed to update task');
+        }
+    };
+
+    // Load events for the user
+    const loadEvents = async () => {
+        try {
+            const response = await fetch(`${API_URL}/events`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+
+            // Normalize field names from database format to frontend format
+            const normalizedEvents = data.map(event => ({
+                ...event,
+                startTime: event.starttime,
+                endTime: event.endtime,
+                xPosition: event.xposition,
+                backgroundColor: event.backgroundcolor,
+                overlayText: event.overlaytext,
+                recurringDays: event.recurringdays,
+                recurringEventId: event.recurringeventid
+            }));
+
+            setEvents(normalizedEvents);
+        } catch (error) {
+            console.error('[Events] Load error:', error);
+            toast.error('Failed to load events');
         }
     };
 

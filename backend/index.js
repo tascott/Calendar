@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -99,16 +100,16 @@ app.post('/api/events', authenticateToken, async (req, res) => {
 
     try {
         const db = await getDb();
-        await db.exec('BEGIN TRANSACTION');
+        await db.query('BEGIN');
         try {
             for (const event of newEvents) {
                 await saveEvent(req.user.id, event);
             }
-            await db.exec('COMMIT');
+            await db.query('COMMIT');
             const savedEvents = await getAllEvents(req.user.id);
             res.json(savedEvents);
         } catch (error) {
-            await db.exec('ROLLBACK');
+            await db.query('ROLLBACK');
             throw error;
         }
     } catch (error) {

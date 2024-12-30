@@ -7,10 +7,23 @@ function CurrentTimeLine({ settings, events = [] }) {
     const [activeEvents, setActiveEvents] = useState(new Set());
     const lastEventStates = useRef(new Map());
 
+    // Log events for debugging
+    useEffect(() => {
+        console.log('[CurrentTimeLine] Received events:', events);
+        console.log('[CurrentTimeLine] Settings:', settings);
+    }, [events, settings]);
+
     // Convert time string to minutes since start of day
     const timeToMinutes = (timeStr) => {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + minutes;
+        if (!timeStr) return 0; // Return 0 for undefined or empty time strings
+        try {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            if (isNaN(hours) || isNaN(minutes)) return 0;
+            return hours * 60 + minutes;
+        } catch (error) {
+            console.error('Error converting time to minutes:', error);
+            return 0;
+        }
     };
 
     const startMinutes = timeToMinutes(settings?.dayStartTime || '00:00');

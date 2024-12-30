@@ -19,8 +19,15 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
 
     // Convert time string to minutes since start of day
     const timeToMinutes = (timeStr) => {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + minutes;
+        if (!timeStr) return 0; // Return 0 for undefined or empty time strings
+        try {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            if (isNaN(hours) || isNaN(minutes)) return 0;
+            return hours * 60 + minutes;
+        } catch (error) {
+            console.error('Error converting time to minutes:', error);
+            return 0;
+        }
     };
 
     // Convert minutes to time string
@@ -46,7 +53,7 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
     const leftPosition = event.xPosition || 0;
 
     const isStatus = event.type === 'status';
-    const isOutOfRange = endMinutes <= visibleStartMinutes || startMinutes >= visibleEndMinutes;
+    const isOutOfRange = endMinutes < visibleStartMinutes || startMinutes > visibleEndMinutes;
     const isPartiallyVisible = (startMinutes < visibleStartMinutes && endMinutes > visibleStartMinutes) ||
                               (startMinutes < visibleEndMinutes && endMinutes > visibleEndMinutes);
 
@@ -286,8 +293,15 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
 
     // Convert time string to minutes since start of day
     const timeToMinutes = (timeStr) => {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours * 60 + minutes;
+        if (!timeStr) return 0; // Return 0 for undefined or empty time strings
+        try {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            if (isNaN(hours) || isNaN(minutes)) return 0;
+            return hours * 60 + minutes;
+        } catch (error) {
+            console.error('Error converting time to minutes:', error);
+            return 0;
+        }
     };
 
     const startMinutes = timeToMinutes(settings?.dayStartTime || '00:00');
@@ -300,11 +314,16 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
         const eventStart = timeToMinutes(event.startTime);
         const eventEnd = timeToMinutes(event.endTime);
 
-        if (eventEnd <= startMinutes) {
+        // Event is completely before visible range
+        if (eventEnd < startMinutes) {
             acc.beforeRange.push(event);
-        } else if (eventStart >= endMinutes) {
+        }
+        // Event is completely after visible range
+        else if (eventStart > endMinutes) {
             acc.afterRange.push(event);
-        } else {
+        }
+        // Event overlaps with visible range
+        else {
             acc.visibleEvents.push(event);
         }
         return acc;
