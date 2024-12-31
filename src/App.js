@@ -42,6 +42,7 @@ function App() {
     });
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [tasks, setTasks] = useState([]);
+    const [editingTask, setEditingTask] = useState(null);
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -764,6 +765,32 @@ function App() {
         }
     };
 
+    const handleTaskClick = (task) => {
+        setEditingTask(task);
+        setIsTaskModalOpen(true);
+    };
+
+    const handleTaskModalClose = () => {
+        setEditingTask(null);
+        setIsTaskModalOpen(false);
+    };
+
+    const handleTaskSubmit = async (taskData) => {
+        try {
+            if (editingTask) {
+                // If editing, preserve the ID
+                await handleTaskUpdate({ ...taskData, id: editingTask.id });
+            } else {
+                // If creating new task
+                await handleNewTask(taskData);
+            }
+            handleTaskModalClose();
+        } catch (error) {
+            console.error('[Tasks] Error saving task:', error);
+            toast.error('Failed to save task');
+        }
+    };
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
@@ -777,6 +804,7 @@ function App() {
                 dayEndTime: settings.dayEndTime
             },
             tasks,
+            onTaskClick: handleTaskClick,
             onTaskUpdate: handleTaskUpdate
         };
 
@@ -976,10 +1004,13 @@ function App() {
                     {isTaskModalOpen && (
                         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
                             <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
-                                <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">New Task</h2>
+                                <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
+                                    {editingTask ? 'Edit Task' : 'New Task'}
+                                </h2>
                                 <TaskForm
-                                    onSubmit={handleNewTask}
-                                    onCancel={() => setIsTaskModalOpen(false)}
+                                    onSubmit={handleTaskSubmit}
+                                    onCancel={handleTaskModalClose}
+                                    initialData={editingTask}
                                 />
                             </div>
                         </div>
