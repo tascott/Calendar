@@ -704,6 +704,11 @@ function App() {
     const handleTaskUpdate = async (updatedTask) => {
         try {
             console.log('[Tasks] Updating task:', updatedTask);
+            // Optimistically update the UI state first
+            setTasks(prevTasks => prevTasks.map(task =>
+                task.id === updatedTask.id ? { ...task, ...updatedTask } : task
+            ));
+
             const response = await fetch(`${API_URL}/tasks`, {
                 method: 'POST',
                 headers: {
@@ -720,19 +725,22 @@ function App() {
                 setTasks(prevTasks => prevTasks.filter(task => task.id !== updatedTask.id));
                 toast.success('Task deleted');
             } else {
-                // Otherwise update with normalized data
-                const normalizedTasks = data.map(task => ({
-                    ...task,
-                    startTime: task.starttime,
-                    endTime: task.endtime,
-                    createdAt: task.created_at
-                }));
-                setTasks(normalizedTasks);
-                toast.success('Task updated');
+                // Update just the modified task in the state with server response
+                const normalizedTask = {
+                    ...data,
+                    startTime: data.starttime,
+                    endTime: data.endtime,
+                    createdAt: data.created_at
+                };
+                setTasks(prevTasks => prevTasks.map(task =>
+                    task.id === normalizedTask.id ? normalizedTask : task
+                ));
             }
         } catch (error) {
             console.error('[Tasks] Error updating task:', error);
             toast.error('Failed to update task');
+            // Revert the optimistic update on error
+            fetchTasks();
         }
     };
 

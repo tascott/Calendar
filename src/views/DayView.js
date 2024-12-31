@@ -6,6 +6,7 @@ import CurrentTimeLine from '../components/CurrentTimeLine';
 import CalendarNavigation from '../components/CalendarNavigation';
 import { Toaster } from 'react-hot-toast';
 import TaskForm from '../components/TaskForm';
+import Task from '../components/Task';
 
 const DRAG_TYPE = 'event';
 const SNAP_INCREMENTS = Array.from({ length: 21 }, (_, i) => i * 5); // 0, 5, 10, ..., 100
@@ -353,7 +354,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
     };
 
     const [, drop] = useDrop(() => ({
-        accept: DRAG_TYPE,
+        accept: [DRAG_TYPE, 'task'],
         hover: (item, monitor) => {
             if (!gridRef.current) return;
 
@@ -362,55 +363,84 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
             const y = clientOffset.y - rect.top;
             const x = clientOffset.x - rect.left;
 
-            // Calculate new start time and x position
-            let newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
-            const newXPosition = calculateXPosition(x, rect, item.grabOffset, item.width, item.type);
+            if (item.type === DRAG_TYPE) {
+                // Handle event dragging (existing code)
+                let newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
+                const newXPosition = calculateXPosition(x, rect, item.grabOffset, item.width, item.type);
 
-            // Cap end time at midnight (24:00)
-            const potentialEndMinutes = newStartMinutes + item.duration;
-            if (potentialEndMinutes > 24 * 60) {
-                // Adjust start time to ensure event ends at midnight
-                newStartMinutes = (24 * 60) - item.duration;
+                // Cap end time at midnight (24:00)
+                const potentialEndMinutes = newStartMinutes + item.duration;
+                if (potentialEndMinutes > 24 * 60) {
+                    newStartMinutes = (24 * 60) - item.duration;
+                }
+
+                // Format times
+                const startHours = Math.floor(newStartMinutes / 60);
+                const startMinutes = newStartMinutes % 60;
+                const endMinutes = Math.min(newStartMinutes + item.duration, 24 * 60);
+                const endHours = Math.floor(endMinutes / 60);
+                const endMins = endMinutes % 60;
+
+                const startTime = `${startHours.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`;
+                const endTime = endMinutes === 24 * 60
+                    ? '24:00'
+                    : `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
+
+                item.currentPosition = {
+                    id: item.id,
+                    startTime,
+                    endTime,
+                    xPosition: newXPosition,
+                    isDragging: true,
+                    isVisualOnly: true,
+                    date: currentDateStr
+                };
+
+                onEventUpdate(item.id, item.currentPosition);
             }
-
-            // Format times
-            const startHours = Math.floor(newStartMinutes / 60);
-            const startMinutes = newStartMinutes % 60;
-            const endMinutes = Math.min(newStartMinutes + item.duration, 24 * 60);
-            const endHours = Math.floor(endMinutes / 60);
-            const endMins = endMinutes % 60;
-
-            const startTime = `${startHours.toString().padStart(2, '0')}:${startMinutes.toString().padStart(2, '0')}`;
-            const endTime = endMinutes === 24 * 60
-                ? '24:00'
-                : `${endHours.toString().padStart(2, '0')}:${endMins.toString().padStart(2, '0')}`;
-
-            // Store the current position in the item for the drop handler
-            item.currentPosition = {
-                id: item.id,
-                startTime,
-                endTime,
-                xPosition: newXPosition,
-                isDragging: true,
-                isVisualOnly: true,  // Flag to indicate this is just for visual update
-                date: currentDateStr  // Add the current date
-            };
-
-            // Update visual position only
-            onEventUpdate(item.id, item.currentPosition);
         },
-        drop: (item) => {
-            if (item.currentPosition) {
-                // On final drop, send update without visual-only flag
-                const { isVisualOnly, ...finalPosition } = item.currentPosition;
-                onEventUpdate(item.id, {
-                    ...finalPosition,
-                    isDragging: false,
-                    date: currentDateStr  // Add the current date
-                });
+        drop: (item, monitor) => {
+            if (item.type === DRAG_TYPE) {
+                if (item.currentPosition) {
+                    const { isVisualOnly, ...finalPosition } = item.currentPosition;
+                    onEventUpdate(item.id, {
+                        ...finalPosition,
+                        isDragging: false,
+                        date: currentDateStr
+                    });
+                }
+            } else {
+                const rect = gridRef.current.getBoundingClientRect();
+                const clientOffset = monitor.getClientOffset();
+                const x = clientOffset.x - rect.left;
+                const y = clientOffset.y - rect.top;
+
+                // Calculate new horizontal position
+                const xPosition = snapToNearestFive((x / rect.width) * 100);
+
+                // Calculate new time based on vertical position
+                const visibleMinutes = endMinutes - startMinutes;
+                const totalMinutes = (y / rect.height) * visibleMinutes + startMinutes;
+                const snappedMinutes = snapToNearestFifteen(Math.max(startMinutes, Math.min(totalMinutes, endMinutes - 15)));
+
+                // Convert to hours and minutes
+                const hours = Math.floor(snappedMinutes / 60);
+                const minutes = snappedMinutes % 60;
+                const newTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+                // Only update if position or time has changed
+                if (item.xposition !== xPosition || item.time !== newTime) {
+                    onTaskUpdate({
+                        ...item,
+                        xposition: xPosition,
+                        time: newTime,
+                        isDragging: false,
+                        date: item.date || currentDateStr
+                    });
+                }
             }
         }
-    }), [onEventUpdate, currentDateStr]);
+    }), [onEventUpdate, onTaskUpdate, currentDateStr]);
 
     const handleGridDoubleClick = (e) => {
         if (!onDoubleClick) return;
@@ -487,14 +517,16 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                                 style={{
                                     top: `${top}%`,
                                     left: `${task.xposition || 0}%`,
-                                    zIndex: 1100
+                                    zIndex: 1100,
+                                    transform: 'translateY(-50%)'
                                 }}
                                 onClick={() => handleTaskClick(task)}
                             >
                                 <div className="flex items-center">
-                                    <div
-                                        className={`w-3 h-3 rounded-full ${task.priority === 'high' ? 'bg-red-600' : 'bg-red-400'}`}
-                                        title={task.title}
+                                    <Task
+                                        task={task}
+                                        onClick={() => handleTaskClick(task)}
+                                        onPositionChange={(updatedTask) => onTaskUpdate(updatedTask)}
                                     />
                                     <span className="ml-2 text-xs text-gray-600 truncate max-w-[100px]">
                                         {task.title}

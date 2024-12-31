@@ -143,8 +143,13 @@ app.post('/api/settings', authenticateToken, async (req, res) => {
 app.post('/api/tasks', authenticateToken, async (req, res) => {
     try {
         const taskId = await saveTask(req.user.id, req.body);
-        const tasks = await getUserTasks(req.user.id);
-        res.json(tasks);
+        if (req.body.deleted) {
+            res.json({ success: true, deleted: req.body.id });
+        } else {
+            // Just return the updated task
+            const task = await db.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
+            res.json(task.rows[0]);
+        }
     } catch (error) {
         console.error('Error creating task:', error);
         res.status(500).json({ error: 'Failed to create task' });
