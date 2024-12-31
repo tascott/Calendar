@@ -98,7 +98,7 @@ const NotesPanel = ({ isOpen, onToggle }) => {
                     </div>
 
                     {/* Notes list */}
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto p-4 pr-12">
                         {notes.length === 0 ? (
                             <p className="text-gray-500 text-center">No notes yet</p>
                         ) : (
@@ -111,7 +111,7 @@ const NotesPanel = ({ isOpen, onToggle }) => {
                     </div>
 
                     {/* Input area */}
-                    <div className="p-4 border-t-2 border-[#2C2C2C] bg-[#F6F5F1]">
+                    <div className="p-4 pr-12 border-t-2 border-[#2C2C2C] bg-[#F6F5F1]">
                         <div className="relative">
                             <textarea
                                 value={newNote}

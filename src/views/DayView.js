@@ -517,7 +517,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                                 style={{
                                     top: `${top}%`,
                                     left: `${task.xposition || 50}%`,
-                                    zIndex: 40,
+                                    zIndex: 20,
                                     transform: 'translateY(-50%)'
                                 }}
                                 onClick={() => handleTaskClick(task)}

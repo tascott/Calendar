@@ -38,7 +38,7 @@ function TasksPanel({ tasks = [], onTaskClick, onTaskDelete, isOpen, onToggle })
                     </div>
 
                     {/* Tasks list */}
-                    <div className="flex-1 overflow-y-auto p-4">
+                    <div className="flex-1 overflow-y-auto p-4 pr-12">
                         {tasks.length === 0 ? (
                             <p className="text-gray-500 text-center">No tasks yet</p>
                         ) : (
