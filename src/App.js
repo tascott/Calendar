@@ -149,14 +149,12 @@ function App() {
         (config) => {
             if (token) {
                 config.headers.Authorization = `Bearer ${token}`;
-                console.log('[Request] Endpoint:', config.url, 'Headers:', config.headers);
             } else {
                 console.log('[Request] No token available for:', config.url);
             }
             return config;
         },
         (error) => {
-            console.error('[Request Error]', error);
             return Promise.reject(error);
         }
     );

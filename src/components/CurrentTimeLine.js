@@ -135,12 +135,10 @@ function CurrentTimeLine({ settings, events = [], tasks = [], onTaskUpdate }) {
     useEffect(() => {
         const checkTasks = () => {
             if (!settings?.taskNotifications) {
-                console.log('[CurrentTimeLine] Task notifications disabled, skipping check. Settings:', settings);
                 return;
             }
 
             const now = new Date();
-            console.log('[CurrentTimeLine] Checking tasks at:', now.toLocaleTimeString(), 'Tasks:', tasks, 'Settings:', settings);
 
             tasks.forEach(task => {
                 if (isTaskTime(task, now)) {
@@ -162,7 +160,6 @@ function CurrentTimeLine({ settings, events = [], tasks = [], onTaskUpdate }) {
     useEffect(() => {
         const updateTime = () => {
             const now = new Date();
-            console.log('[CurrentTimeLine] Updating current time:', now.toLocaleTimeString());
             setCurrentTime(now);
         };
         updateTime(); // Run immediately
