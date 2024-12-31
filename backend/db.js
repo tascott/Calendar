@@ -46,7 +46,6 @@ async function setupDb() {
                 time TEXT NOT NULL,
                 priority TEXT DEFAULT 'medium',
                 nudge TEXT,
-                xposition REAL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -74,6 +73,21 @@ async function setupDb() {
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
         `);
+
+        // Add xposition column to tasks table if it doesn't exist
+        await db.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name='tasks' AND column_name='xposition'
+                ) THEN
+                    ALTER TABLE tasks ADD COLUMN xposition REAL DEFAULT 0;
+                END IF;
+            END $$;
+        `);
+
         console.log('[Database] Tables verified/created');
     } catch(error) {
         console.error('[Database] Setup error:',error);

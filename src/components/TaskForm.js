@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 function TaskForm({ onSubmit, onCancel, initialData }) {
     const [enableNudge, setEnableNudge] = useState(initialData?.nudge != null);
+    const [position, setPosition] = useState(initialData?.xposition || 0);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -12,7 +13,8 @@ function TaskForm({ onSubmit, onCancel, initialData }) {
             title: e.target.title.value,
             priority: e.target.priority.value,
             nudge: enableNudge ? parseInt(e.target.nudge.value, 10) : null,
-            complete: initialData?.complete || false
+            complete: initialData?.complete || false,
+            xposition: parseInt(e.target.xposition.value, 10)
         };
         onSubmit(formData);
     };
@@ -66,6 +68,25 @@ function TaskForm({ onSubmit, onCancel, initialData }) {
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                 </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
+                    Position
+                </label>
+                <div className="flex items-center space-x-4">
+                    <input
+                        type="range"
+                        name="xposition"
+                        min="0"
+                        max="100"
+                        value={position}
+                        onChange={(e) => setPosition(e.target.value)}
+                        className="flex-1"
+                    />
+                    <span className="text-sm text-[#2C2C2C] w-12">
+                        {position}%
+                    </span>
+                </div>
             </div>
             <div className="space-y-2">
                 <div className="flex items-center">
