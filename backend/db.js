@@ -243,6 +243,25 @@ async function getSettings(userId) {
 // Function to save a task
 async function saveTask(userId, task) {
     const db = await getDb();
+
+    // Handle deletion first
+    if (task.deleted === true) {
+        console.log('[DELETE] Processing delete for task:', task.id, 'User ID:', userId);
+        try {
+            const result = await db.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING id', [task.id, userId]);
+            console.log('[DELETE] Task deletion result:', result.rows);
+            if (result.rowCount === 0) {
+                console.log('[DELETE] No task found to delete with id:', task.id, 'and user_id:', userId);
+                throw new Error('Task not found');
+            }
+            console.log('[DELETE] Task successfully deleted:', task.id, 'Rows affected:', result.rowCount);
+            return task.id;
+        } catch (error) {
+            console.error('[DELETE] Error deleting task:', error);
+            throw error;
+        }
+    }
+
     const { id, title, date, time, priority, nudge, xposition } = task;
     const result = await db.query(
         `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge, xposition)
@@ -250,7 +269,7 @@ async function saveTask(userId, task) {
          ON CONFLICT (id) DO UPDATE SET
          title = $3, date = $4, time = $5, priority = $6, nudge = $7, xposition = $8
          RETURNING id`,
-        [id, userId, title, date, time, priority || 'medium', nudge, xposition || 0]
+        [id, userId, title, date, time, priority, nudge, xposition || 0]
     );
     return result.rows[0].id;
 }

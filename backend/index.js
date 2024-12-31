@@ -142,17 +142,26 @@ app.post('/api/settings', authenticateToken, async (req, res) => {
 
 app.post('/api/tasks', authenticateToken, async (req, res) => {
     try {
+        const db = await getDb();
+        console.log('[Tasks API] Processing request:', { userId: req.user.id, task: req.body });
+
         const taskId = await saveTask(req.user.id, req.body);
+
         if (req.body.deleted) {
-            res.json({ success: true, deleted: req.body.id });
-        } else {
-            // Just return the updated task
-            const task = await db.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
-            res.json(task.rows[0]);
+            console.log('[Tasks API] Task deleted:', taskId);
+            res.json({ success: true, deleted: taskId });
+            return;
         }
+
+        // For non-delete operations, return the updated task
+        const result = await db.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
+        if (result.rows.length === 0) {
+            throw new Error('Task not found after save');
+        }
+        res.json(result.rows[0]);
     } catch (error) {
-        console.error('Error creating task:', error);
-        res.status(500).json({ error: 'Failed to create task' });
+        console.error('[Tasks API] Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to process task' });
     }
 });
 

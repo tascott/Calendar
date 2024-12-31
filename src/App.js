@@ -704,10 +704,20 @@ function App() {
     const handleTaskUpdate = async (updatedTask) => {
         try {
             console.log('[Tasks] Updating task:', updatedTask);
-            // Optimistically update the UI state first
-            setTasks(prevTasks => prevTasks.map(task =>
-                task.id === updatedTask.id ? { ...task, ...updatedTask } : task
-            ));
+
+            // Only do optimistic update for non-deletion updates
+            if (!updatedTask.deleted) {
+                setTasks(prevTasks => prevTasks.map(task =>
+                    task.id === updatedTask.id ? { ...task, ...updatedTask } : task
+                ));
+            }
+
+            // For deletion, ensure we preserve all necessary fields
+            const taskToUpdate = updatedTask.deleted
+                ? { ...tasks.find(t => t.id === updatedTask.id), ...updatedTask }
+                : updatedTask;
+
+            console.log('[Tasks] Sending to server:', taskToUpdate);
 
             const response = await fetch(`${API_URL}/tasks`, {
                 method: 'POST',
@@ -715,8 +725,13 @@ function App() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(updatedTask)
+                body: JSON.stringify(taskToUpdate)
             });
+
+            if (!response.ok) {
+                throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+            }
+
             const data = await response.json();
             console.log('[Tasks] Update successful:', data);
 
@@ -739,7 +754,7 @@ function App() {
         } catch (error) {
             console.error('[Tasks] Error updating task:', error);
             toast.error('Failed to update task');
-            // Revert the optimistic update on error
+            // Revert any optimistic updates on error
             fetchTasks();
         }
     };
