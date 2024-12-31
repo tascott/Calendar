@@ -8,7 +8,16 @@ async function getDb() {
             connectionString: process.env.DATABASE_URL,
             ssl: {
                 rejectUnauthorized: false // Required for Railway's self-signed certificate
-            }
+            },
+            max: 20, // Maximum number of clients in the pool
+            idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+            connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
+            maxUses: 7500 // Close and replace a connection after it has been used 7500 times
+        });
+
+        // Add error handler to prevent connection issues from crashing the server
+        pool.on('error', (err, client) => {
+            console.error('Unexpected error on idle client', err);
         });
     }
     return pool;
@@ -38,6 +47,9 @@ async function setupDb() {
                 overlaytext TEXT
             );
 
+            CREATE INDEX IF NOT EXISTS idx_events_user_id ON events(user_id);
+            CREATE INDEX IF NOT EXISTS idx_events_date ON events(date);
+
             CREATE TABLE IF NOT EXISTS tasks (
                 id TEXT PRIMARY KEY,
                 user_id INTEGER NOT NULL,
@@ -46,14 +58,21 @@ async function setupDb() {
                 time TEXT NOT NULL,
                 priority TEXT DEFAULT 'medium',
                 nudge TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                xposition REAL DEFAULT 0
             );
+
+            CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+            CREATE INDEX IF NOT EXISTS idx_tasks_date ON tasks(date);
+            CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
 
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL
             );
+
+            CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
             CREATE TABLE IF NOT EXISTS settings (
                 user_id INTEGER PRIMARY KEY,
@@ -72,6 +91,9 @@ async function setupDb() {
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id)
             );
+
+            CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
+            CREATE INDEX IF NOT EXISTS idx_notes_timestamp ON notes(timestamp);
         `);
 
         // Add xposition column to tasks table if it doesn't exist

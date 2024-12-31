@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const compression = require('compression');
 const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks, getNotes, saveNote } = require('./db');
 const path = require('path');
 
@@ -13,6 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Middleware
 app.use(cors());
+app.use(compression());
 app.use(bodyParser.json());
 
 // Serve static files from the React app
