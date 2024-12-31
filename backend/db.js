@@ -20,8 +20,7 @@ async function setupDb() {
     try {
         // Check and create tables if they don't exist
         await db.query(`
-            DROP TABLE IF EXISTS events;
-            CREATE TABLE events (
+            CREATE TABLE IF NOT EXISTS events (
                 user_id INTEGER NOT NULL,
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -47,6 +46,7 @@ async function setupDb() {
                 time TEXT NOT NULL,
                 priority TEXT DEFAULT 'medium',
                 nudge TEXT,
+                xposition REAL DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -56,8 +56,7 @@ async function setupDb() {
                 password TEXT NOT NULL
             );
 
-            DROP TABLE IF EXISTS settings;
-            CREATE TABLE settings (
+            CREATE TABLE IF NOT EXISTS settings (
                 user_id INTEGER PRIMARY KEY,
                 primarycolor TEXT DEFAULT '#2C2C2C',
                 defaulteventwidth INTEGER DEFAULT 80,
@@ -208,14 +207,14 @@ async function getSettings(userId) {
 // Function to save a task
 async function saveTask(userId, task) {
     const db = await getDb();
-    const { id, title, date, time, priority, nudge } = task;
+    const { id, title, date, time, priority, nudge, xposition } = task;
     const result = await db.query(
-        `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge, xposition)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          ON CONFLICT (id) DO UPDATE SET
-         title = $3, date = $4, time = $5, priority = $6, nudge = $7
+         title = $3, date = $4, time = $5, priority = $6, nudge = $7, xposition = $8
          RETURNING id`,
-        [id, userId, title, date, time, priority || 'medium', nudge]
+        [id, userId, title, date, time, priority || 'medium', nudge, xposition || 0]
     );
     return result.rows[0].id;
 }
