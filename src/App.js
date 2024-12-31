@@ -218,7 +218,11 @@ function App() {
 
     const saveEvents = async (newEvents) => {
         try {
-            console.log('[Events] Saving events:', newEvents);
+            // Only log for delete operations
+            if (Array.isArray(newEvents) && newEvents.some(e => e.deleted)) {
+                console.log('[DELETE] Sending to backend:', newEvents);
+            }
+
             const response = await fetch(`${API_URL}/events`, {
                 method: 'POST',
                 headers: {
@@ -227,35 +231,35 @@ function App() {
                 },
                 body: JSON.stringify(Array.isArray(newEvents) ? newEvents : [newEvents])
             });
-            console.log('[Response] Success:', response.url, response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
             const data = await response.json();
             console.log('[Events] Save successful, updating state with response:', data);
 
-            // Normalize field names from database format to frontend format
-            const normalizedEvents = data.map(event => ({
-                ...event,
-                startTime: event.starttime,
-                endTime: event.endtime,
-                xPosition: event.xposition,
-                backgroundColor: event.backgroundcolor,
-                overlayText: event.overlaytext,
-                recurringDays: event.recurringdays,
-                recurringEventId: event.recurringeventid
-            }));
+            // For delete operations, just update the state
+            if (Array.isArray(newEvents) && newEvents.some(e => e.deleted)) {
+                const deletedIds = newEvents.filter(e => e.deleted).map(e => e.id);
+                setEvents(prev => prev.filter(e => !deletedIds.includes(e.id)));
+                return;
+            }
 
-            // Update state with normalized events
-            setEvents(prevEvents => {
-                const updatedEvents = [...prevEvents];
-                normalizedEvents.forEach(newEvent => {
-                    const index = updatedEvents.findIndex(e => e.id === newEvent.id);
-                    if (index !== -1) {
-                        updatedEvents[index] = newEvent;
-                    } else {
-                        updatedEvents.push(newEvent);
-                    }
-                });
-                return updatedEvents;
-            });
+            // For non-delete operations, normalize and update state
+            if (Array.isArray(data)) {
+                const normalizedEvents = data.map(event => ({
+                    ...event,
+                    startTime: event.starttime,
+                    endTime: event.endtime,
+                    xPosition: event.xposition,
+                    backgroundColor: event.backgroundcolor,
+                    overlayText: event.overlaytext,
+                    recurringDays: event.recurringdays,
+                    recurringEventId: event.recurringeventid
+                }));
+                setEvents(normalizedEvents);
+            }
         } catch (error) {
             console.error('[Events] Save error:', error);
             toast.error('Failed to save events');

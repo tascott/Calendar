@@ -20,22 +20,23 @@ async function setupDb() {
     try {
         // Check and create tables if they don't exist
         await db.query(`
-            CREATE TABLE IF NOT EXISTS events (
+            DROP TABLE IF EXISTS events;
+            CREATE TABLE events (
                 user_id INTEGER NOT NULL,
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
                 date TEXT NOT NULL,
-                startTime TEXT NOT NULL,
-                endTime TEXT NOT NULL,
+                starttime TEXT NOT NULL,
+                endtime TEXT NOT NULL,
                 type TEXT,
-                xPosition REAL DEFAULT 0,
+                xposition REAL DEFAULT 0,
                 width REAL DEFAULT 50,
-                backgroundColor TEXT,
+                backgroundcolor TEXT,
                 color TEXT,
                 recurring TEXT DEFAULT 'none',
-                recurringDays TEXT DEFAULT '{}',
-                recurringEventId TEXT,
-                overlayText TEXT
+                recurringdays TEXT DEFAULT '{}',
+                recurringeventid TEXT,
+                overlaytext TEXT
             );
 
             CREATE TABLE IF NOT EXISTS tasks (
@@ -91,16 +92,18 @@ async function getAllEvents(userId) {
 // Example function to save an event
 async function saveEvent(userId, event) {
     const db = await getDb();
+
+    // Handle deletion first, only need id and deleted flag
+    if (event.deleted === true) {
+        console.log('[DELETE] Processing delete for event:', event.id);
+        const result = await db.query('DELETE FROM events WHERE id = $1 AND user_id = $2', [event.id, userId]);
+        console.log('[DELETE] Event deleted:', event.id, 'Rows affected:', result.rowCount);
+        return;
+    }
+
+    // For non-delete operations, validate required fields
     const {id, name, date, startTime, endTime, type, xPosition, width, backgroundColor, color, recurring, recurringDays, recurringEventId, overlayText} = event;
 
-    // Log event data for debugging
-    console.log('[Database] Saving event:', {
-        id, name, date, startTime, endTime, type,
-        xPosition, width, backgroundColor, color,
-        recurring, recurringDays, recurringEventId
-    });
-
-    // Validate required fields
     if (!id || !name || !date || !startTime || !endTime) {
         console.error('[Database] Missing required fields:', { id, name, date, startTime, endTime });
         throw new Error('Missing required fields for event');
@@ -110,15 +113,15 @@ async function saveEvent(userId, event) {
     await db.query(
         `
         INSERT INTO events (
-            user_id, id, name, date, startTime, endTime, type,
-            xPosition, width, backgroundColor, color, recurring,
-            recurringDays, recurringEventId, overlayText
+            user_id, id, name, date, starttime, endtime, type,
+            xposition, width, backgroundcolor, color, recurring,
+            recurringdays, recurringeventid, overlaytext
         )
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         ON CONFLICT (id) DO UPDATE SET
-            name = $3, date = $4, startTime = $5, endTime = $6, type = $7,
-            xPosition = $8, width = $9, backgroundColor = $10, color = $11,
-            recurring = $12, recurringDays = $13, recurringEventId = $14, overlayText = $15
+            name = $3, date = $4, starttime = $5, endtime = $6, type = $7,
+            xposition = $8, width = $9, backgroundcolor = $10, color = $11,
+            recurring = $12, recurringdays = $13, recurringeventid = $14, overlaytext = $15
         `,
         [
             userId, id, name, date, startTime, endTime, type,
@@ -126,7 +129,6 @@ async function saveEvent(userId, event) {
             recurring || 'none', recurringDays || '{}', recurringEventId, overlayText
         ]
     );
-    console.log(`[Database] Event ${id} saved/updated successfully`);
 }
 
 // Function to create a user
