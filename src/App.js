@@ -39,7 +39,9 @@ function App() {
         defaultStatusWidth: 20,
         dayStartTime: '06:00',
         dayEndTime: '22:00',
-        font: 'system-ui'
+        font: 'system-ui',
+        taskNotifications: false,
+        taskAvoidFocus: false
     });
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [tasks, setTasks] = useState([]);
@@ -840,7 +842,13 @@ function App() {
             onNavigate: handleNavigate,
             settings: {
                 dayStartTime: settings.dayStartTime,
-                dayEndTime: settings.dayEndTime
+                dayEndTime: settings.dayEndTime,
+                taskNotifications: settings.taskNotifications,
+                taskAvoidFocus: settings.taskAvoidFocus,
+                primaryColor: settings.primaryColor,
+                defaultEventWidth: settings.defaultEventWidth,
+                defaultStatusWidth: settings.defaultStatusWidth,
+                font: settings.font
             },
             tasks,
             onTaskClick: handleTaskClick,

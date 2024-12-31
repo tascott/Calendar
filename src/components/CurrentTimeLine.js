@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 
-function CurrentTimeLine({ settings, events = [] }) {
+function CurrentTimeLine({ settings, events = [], tasks = [] }) {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [notifiedEvents, setNotifiedEvents] = useState(new Set());
     const [activeEvents, setActiveEvents] = useState(new Set());
     const lastEventStates = useRef(new Map());
     const lastEventsLength = useRef(0);
+    const notifiedTasks = useRef(new Map()); // Track tasks that have been notified and their times
 
     // Log events for debugging
     useEffect(() => {
@@ -79,84 +80,94 @@ function CurrentTimeLine({ settings, events = [] }) {
         setActiveEvents(prev => new Set([...prev, event.id]));
     }
 
-    // Check for events when component mounts or time/events change
+    // Check if a task's time matches the current time
+    function isTaskTime(task, currentTime) {
+        const today = new Date().toISOString().split('T')[0];
+        if (task.date !== today) return false;
+
+        const taskMinutes = timeToMinutes(task.time);
+        const currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+
+
+        return taskMinutes === currentMinutes;
+    }
+
+    // Handle task notification
+    function handleTaskNotification(task) {
+        if (!settings?.taskNotifications) {
+            console.log('[CurrentTimeLine] Task notifications disabled');
+            return;
+        }
+
+        // Check if we've already notified for this task
+        const lastNotification = notifiedTasks.current.get(task.id);
+        if (lastNotification && lastNotification.time === task.time) {
+            console.log('[CurrentTimeLine] Task already notified:', task.title);
+            return;
+        }
+
+        console.log('[CurrentTimeLine] Notifying task:', task.title, 'Previous notification:', lastNotification);
+        toast(`Task due: ${task.title}`, {
+            duration: 5000,
+            position: 'top-right',
+            icon: '⏰',
+            style: {
+                background: '#E0F2FE',
+                color: '#075985'
+            }
+        });
+
+        // Update the notification record
+        notifiedTasks.current.set(task.id, {
+            time: task.time,
+            notifiedAt: new Date()
+        });
+    }
+
+    // Clean up old notifications when tasks change
     useEffect(() => {
-        // Function to check events
-        const checkEvents = () => {
+        const currentTaskIds = new Set(tasks.map(t => t.id));
+        for (const [taskId] of notifiedTasks.current) {
+            if (!currentTaskIds.has(taskId)) {
+                notifiedTasks.current.delete(taskId);
+            }
+        }
+    }, [tasks]);
+
+    useEffect(() => {
+        const checkTasks = () => {
+            if (!settings?.taskNotifications) {
+                console.log('[CurrentTimeLine] Task notifications disabled, skipping check. Settings:', settings);
+                return;
+            }
+
             const now = new Date();
-            const today = now.toISOString().split('T')[0];
+            console.log('[CurrentTimeLine] Checking tasks at:', now.toLocaleTimeString(), 'Tasks:', tasks, 'Settings:', settings);
 
-            events.forEach(event => {
-                // Skip events that are being dragged
-                if (event.isDragging) return;
-
-                // Only check today's events
-                if (event.date !== today) return;
-
-                const isCurrentlyInProgress = isEventInProgress(event, now);
-                const wasInProgress = lastEventStates.current.get(event.id);
-                const justDropped = 'justDropped' in event;
-
-                // Handle initial load or event becoming in progress
-                if (isCurrentlyInProgress) {
-                    // Only notify if:
-                    // 1. Initial load (no previous state)
-                    // 2. Just dropped into current time
-                    // 3. Naturally entered current time
-                    if (!lastEventStates.current.has(event.id) || // Initial load
-                        (justDropped && !wasInProgress) || // Just dropped into current time
-                        (!wasInProgress && !activeEvents.has(event.id))) { // Naturally entered current time
-                        handleEventInProgress(event);
-                    }
+            tasks.forEach(task => {
+                if (isTaskTime(task, now)) {
+                    console.log('[CurrentTimeLine] Task time matched:', task.title, task.time);
+                    handleTaskNotification(task);
                 }
-
-                // Handle event start
-                const eventStartMinutes = timeToMinutes(event.startTime);
-                const currentMinutes = now.getHours() * 60 + now.getMinutes();
-                if (eventStartMinutes === currentMinutes && !notifiedEvents.has(event.id)) {
-                    handleEventStart(event);
-                }
-
-                // If event was in progress but isn't anymore, remove from active events
-                if (!isCurrentlyInProgress && wasInProgress) {
-                    setActiveEvents(prev => {
-                        const next = new Set(prev);
-                        next.delete(event.id);
-                        return next;
-                    });
-                }
-
-                // Update last state
-                lastEventStates.current.set(event.id, isCurrentlyInProgress);
             });
         };
 
-        // Reset notifications at midnight
-        const resetNotifications = () => {
-            setNotifiedEvents(new Set());
-            setActiveEvents(new Set());
-            lastEventStates.current = new Map();
-        };
-
-        // Check if we need to reset notifications (if it's a new day)
-        const lastDate = localStorage.getItem('lastNotificationDate');
-        const today = new Date().toISOString().split('T')[0];
-        if (lastDate !== today) {
-            resetNotifications();
-            localStorage.setItem('lastNotificationDate', today);
-        }
-
         // Check immediately when mounted or dependencies change
-        checkEvents();
+        checkTasks();
 
         // Set up interval for frequent checks (every 10 seconds)
-        const checkInterval = setInterval(checkEvents, 10000);
+        const checkInterval = setInterval(checkTasks, 10000);
         return () => clearInterval(checkInterval);
-    }, [events, notifiedEvents, activeEvents]); // Removed lastEventStates from dependencies
+    }, [tasks, settings?.taskNotifications, currentTime, settings]);
 
     // Update current time display every 10 seconds
     useEffect(() => {
-        const updateTime = () => setCurrentTime(new Date());
+        const updateTime = () => {
+            const now = new Date();
+            console.log('[CurrentTimeLine] Updating current time:', now.toLocaleTimeString());
+            setCurrentTime(now);
+        };
+        updateTime(); // Run immediately
         const timer = setInterval(updateTime, 10000);
         return () => clearInterval(timer);
     }, []);

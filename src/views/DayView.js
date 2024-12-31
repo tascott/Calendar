@@ -603,7 +603,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                     </div>
 
                     {/* Current time line */}
-                    <CurrentTimeLine events={events} settings={settings} />
+                    <CurrentTimeLine events={events} settings={settings} tasks={tasks} />
 
                     {/* Toast container */}
                     <Toaster />
