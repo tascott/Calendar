@@ -15,24 +15,33 @@ const SYSTEM_FONTS = [
 ];
 
 function SettingsForm({ onSubmit, onCancel, initialSettings }) {
+    const [activeTab, setActiveTab] = useState('general');
     const [formData, setFormData] = useState({
+        // General settings
         primaryColor: initialSettings?.primaryColor || '#2C2C2C',
         defaultEventWidth: initialSettings?.defaultEventWidth || 80,
         defaultStatusWidth: initialSettings?.defaultStatusWidth || 20,
         dayStartTime: initialSettings?.dayStartTime || '06:00',
         dayEndTime: initialSettings?.dayEndTime || '22:00',
-        font: initialSettings?.font || 'system-ui'
+        font: initialSettings?.font || 'system-ui',
+        // Task settings
+        taskNotifications: initialSettings?.taskNotifications || false,
+        taskAvoidFocus: initialSettings?.taskAvoidFocus || false
     });
 
     // Update form data when initialSettings changes
     useEffect(() => {
         setFormData({
+            // General settings
             primaryColor: initialSettings?.primaryColor || '#2C2C2C',
             defaultEventWidth: initialSettings?.defaultEventWidth || 80,
             defaultStatusWidth: initialSettings?.defaultStatusWidth || 20,
             dayStartTime: initialSettings?.dayStartTime || '06:00',
             dayEndTime: initialSettings?.dayEndTime || '22:00',
-            font: initialSettings?.font || 'system-ui'
+            font: initialSettings?.font || 'system-ui',
+            // Task settings
+            taskNotifications: initialSettings?.taskNotifications || false,
+            taskAvoidFocus: initialSettings?.taskAvoidFocus || false
         });
     }, [initialSettings]);
 
@@ -42,15 +51,15 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
     };
 
     const handleChange = (e) => {
-        const newFormData = {
-            ...formData,
-            [e.target.name]: e.target.value
-        };
-        setFormData(newFormData);
+        const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+        setFormData(prev => ({
+            ...prev,
+            [e.target.name]: value
+        }));
     };
 
-    return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+    const renderGeneralSettings = () => (
+        <div className="space-y-4">
             <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
                     Font
@@ -155,7 +164,85 @@ function SettingsForm({ onSubmit, onCancel, initialSettings }) {
                     Default width for new status events (10-100%)
                 </div>
             </div>
+        </div>
+    );
 
+    const renderTaskSettings = () => (
+        <div className="space-y-6">
+            <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                    <input
+                        type="checkbox"
+                        id="taskNotifications"
+                        name="taskNotifications"
+                        checked={formData.taskNotifications}
+                        onChange={handleChange}
+                        className="h-4 w-4 border-[#2C2C2C] text-[#2C2C2C] focus:ring-[#2C2C2C]"
+                    />
+                    <label htmlFor="taskNotifications" className="text-sm font-medium text-[#2C2C2C]">
+                        Enable Task Notifications
+                    </label>
+                </div>
+                <div className="text-sm text-[#2C2C2C]/70 ml-7">
+                    Receive notifications for upcoming tasks and deadlines
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                    <input
+                        type="checkbox"
+                        id="taskAvoidFocus"
+                        name="taskAvoidFocus"
+                        checked={formData.taskAvoidFocus}
+                        onChange={handleChange}
+                        className="h-4 w-4 border-[#2C2C2C] text-[#2C2C2C] focus:ring-[#2C2C2C]"
+                    />
+                    <label htmlFor="taskAvoidFocus" className="text-sm font-medium text-[#2C2C2C]">
+                        Move Out of Focus Zones
+                    </label>
+                </div>
+                <div className="text-sm text-[#2C2C2C]/70 ml-7">
+                    Automatically move tasks away from focus event time slots
+                </div>
+            </div>
+        </div>
+    );
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Tabs */}
+            <div className="flex border-b border-[#2C2C2C]">
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('general')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-[1px] ${
+                        activeTab === 'general'
+                            ? 'border-[#2C2C2C] text-[#2C2C2C]'
+                            : 'border-transparent text-[#2C2C2C]/60 hover:text-[#2C2C2C]/80'
+                    }`}
+                >
+                    General
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setActiveTab('tasks')}
+                    className={`px-4 py-2 text-sm font-medium border-b-2 -mb-[1px] ${
+                        activeTab === 'tasks'
+                            ? 'border-[#2C2C2C] text-[#2C2C2C]'
+                            : 'border-transparent text-[#2C2C2C]/60 hover:text-[#2C2C2C]/80'
+                    }`}
+                >
+                    Tasks
+                </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="pt-4">
+                {activeTab === 'general' ? renderGeneralSettings() : renderTaskSettings()}
+            </div>
+
+            {/* Form Actions */}
             <div className="flex justify-end space-x-2 pt-4">
                 <button
                     type="button"

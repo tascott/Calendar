@@ -110,6 +110,28 @@ async function setupDb() {
             END $$;
         `);
 
+        // Add new settings columns if they don't exist
+        await db.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name='settings' AND column_name='tasknotifications'
+                ) THEN
+                    ALTER TABLE settings ADD COLUMN tasknotifications BOOLEAN DEFAULT false;
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name='settings' AND column_name='taskavoidfocus'
+                ) THEN
+                    ALTER TABLE settings ADD COLUMN taskavoidfocus BOOLEAN DEFAULT false;
+                END IF;
+            END $$;
+        `);
+
         console.log('[Database] Tables verified/created');
     } catch(error) {
         console.error('[Database] Setup error:',error);
@@ -201,17 +223,20 @@ async function getSettings(userId) {
             daystarttime: '06:00',
             dayendtime: '22:00',
             font: 'system-ui',
+            tasknotifications: false,
+            taskavoidfocus: false
         };
 
         await db.query(`
             INSERT INTO settings (
                 user_id, primarycolor, defaulteventwidth, defaultstatuswidth,
-                daystarttime, dayendtime, font
+                daystarttime, dayendtime, font, tasknotifications, taskavoidfocus
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
             [userId, defaultSettings.primarycolor, defaultSettings.defaulteventwidth,
              defaultSettings.defaultstatuswidth, defaultSettings.daystarttime,
-             defaultSettings.dayendtime, defaultSettings.font]
+             defaultSettings.dayendtime, defaultSettings.font, defaultSettings.tasknotifications,
+             defaultSettings.taskavoidfocus]
         );
         console.log('[Database] Created default settings:', defaultSettings);
 
@@ -223,7 +248,9 @@ async function getSettings(userId) {
             defaultStatusWidth: defaultSettings.defaultstatuswidth,
             dayStartTime: defaultSettings.daystarttime,
             dayEndTime: defaultSettings.dayendtime,
-            font: defaultSettings.font
+            font: defaultSettings.font,
+            taskNotifications: defaultSettings.tasknotifications,
+            taskAvoidFocus: defaultSettings.taskavoidfocus
         };
     }
 
@@ -236,7 +263,9 @@ async function getSettings(userId) {
         defaultStatusWidth: settings.defaultstatuswidth,
         dayStartTime: settings.daystarttime,
         dayEndTime: settings.dayendtime,
-        font: settings.font
+        font: settings.font,
+        taskNotifications: settings.tasknotifications,
+        taskAvoidFocus: settings.taskavoidfocus
     };
 }
 
@@ -294,26 +323,31 @@ async function updateSettings(userId, settings) {
         defaultstatuswidth: settings.defaultStatusWidth,
         daystarttime: settings.dayStartTime,
         dayendtime: settings.dayEndTime,
-        font: settings.font
+        font: settings.font,
+        tasknotifications: settings.taskNotifications,
+        taskavoidfocus: settings.taskAvoidFocus
     };
 
     const result = await db.query(`
         INSERT INTO settings (
             user_id, primarycolor, defaulteventwidth, defaultstatuswidth,
-            daystarttime, dayendtime, font
+            daystarttime, dayendtime, font, tasknotifications, taskavoidfocus
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         ON CONFLICT (user_id) DO UPDATE SET
             primarycolor = $2,
             defaulteventwidth = $3,
             defaultstatuswidth = $4,
             daystarttime = $5,
             dayendtime = $6,
-            font = $7
+            font = $7,
+            tasknotifications = $8,
+            taskavoidfocus = $9
         RETURNING *`,
         [userId, dbSettings.primarycolor, dbSettings.defaulteventwidth,
          dbSettings.defaultstatuswidth, dbSettings.daystarttime,
-         dbSettings.dayendtime, dbSettings.font]
+         dbSettings.dayendtime, dbSettings.font, dbSettings.tasknotifications,
+         dbSettings.taskavoidfocus]
     );
 
     console.log('[Database] Settings update result:', result.rows[0]);
@@ -327,7 +361,9 @@ async function updateSettings(userId, settings) {
         defaultStatusWidth: updatedSettings.defaultstatuswidth,
         dayStartTime: updatedSettings.daystarttime,
         dayEndTime: updatedSettings.dayendtime,
-        font: updatedSettings.font
+        font: updatedSettings.font,
+        taskNotifications: updatedSettings.tasknotifications,
+        taskAvoidFocus: updatedSettings.taskavoidfocus
     };
 }
 
