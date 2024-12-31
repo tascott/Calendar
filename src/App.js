@@ -14,6 +14,7 @@ import axios from 'axios';
 import TaskForm from './components/TaskForm';
 import { toast } from 'react-hot-toast';
 import NotesPanel from './components/NotesPanel';
+import TasksPanel from './components/TasksPanel';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? '/api'  // In production, use relative path
@@ -43,6 +44,7 @@ function App() {
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [tasks, setTasks] = useState([]);
     const [editingTask, setEditingTask] = useState(null);
+    const [activePanel, setActivePanel] = useState(null);
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -793,6 +795,16 @@ function App() {
         setIsTaskModalOpen(true);
     };
 
+    const handleTaskDelete = async (task) => {
+        try {
+            await handleTaskUpdate({ ...task, deleted: true });
+            toast.success('Task deleted');
+        } catch (error) {
+            console.error('[Tasks] Error deleting task:', error);
+            toast.error('Failed to delete task');
+        }
+    };
+
     const handleTaskModalClose = () => {
         setEditingTask(null);
         setIsTaskModalOpen(false);
@@ -812,6 +824,10 @@ function App() {
             console.error('[Tasks] Error saving task:', error);
             toast.error('Failed to save task');
         }
+    };
+
+    const handlePanelToggle = (panelName) => {
+        setActivePanel(activePanel === panelName ? null : panelName);
     };
 
     const renderView = () => {
@@ -850,7 +866,17 @@ function App() {
 
     return (
         <>
-            <NotesPanel />
+            <NotesPanel
+                isOpen={activePanel === 'notes'}
+                onToggle={() => handlePanelToggle('notes')}
+            />
+            <TasksPanel
+                tasks={tasks}
+                onTaskClick={handleTaskClick}
+                onTaskDelete={handleTaskDelete}
+                isOpen={activePanel === 'tasks'}
+                onToggle={() => handlePanelToggle('tasks')}
+            />
             <DndProvider backend={dndBackend} options={dndOptions}>
                 <StatusOverlay isActive={!!activeFocusEvent} event={activeFocusEvent} />
                 <div
@@ -885,22 +911,6 @@ function App() {
                                             className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
                                         >
                                             Settings
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                console.log('=== DEBUG INFO ===');
-                                                console.log('User:', {
-                                                    id: token ? JSON.parse(atob(token.split('.')[1])).id : null,
-                                                    username: token ? JSON.parse(atob(token.split('.')[1])).username : null
-                                                });
-                                                console.log('Events:', events);
-                                                console.log('Tasks:', tasks);
-                                                console.log('Settings:', settings);
-                                                console.log('================');
-                                            }}
-                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                        >
-                                            Debug Info
                                         </button>
                                         <button
                                             onClick={handleLogout}
