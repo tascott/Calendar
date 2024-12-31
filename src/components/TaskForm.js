@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 function TaskForm({ onSubmit, onCancel, initialData }) {
     const [enableNudge, setEnableNudge] = useState(initialData?.nudge != null);
-    const [position, setPosition] = useState(initialData?.xposition || 0);
+    const [position, setPosition] = useState(initialData?.xposition || 50);
 
     const handleSubmit = (e) => {
         e.preventDefault();

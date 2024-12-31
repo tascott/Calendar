@@ -686,7 +686,8 @@ function App() {
                     // Convert frontend camelCase to database lowercase
                     startTime: taskData.time,
                     endTime: taskData.time, // For now, end time is same as start
-                    id: Date.now().toString() // Ensure we have an ID
+                    id: Date.now().toString(), // Ensure we have an ID
+                    xposition: taskData.xposition || 50 // Set default xposition to 50
                 })
             });
             const data = await response.json();
