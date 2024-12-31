@@ -94,6 +94,14 @@ async function setupDb() {
 
             CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);
             CREATE INDEX IF NOT EXISTS idx_notes_timestamp ON notes(timestamp);
+
+            CREATE TABLE IF NOT EXISTS templates (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                name TEXT NOT NULL,
+                events JSONB NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         `);
 
         // Add xposition column to tasks table if it doesn't exist
@@ -423,6 +431,36 @@ async function saveNote(userId, content) {
     return getNotes(userId);
 }
 
+// Function to get templates for a user
+async function getTemplates(userId) {
+    const db = await getDb();
+    const result = await db.query(
+        'SELECT * FROM templates WHERE user_id = $1 ORDER BY created_at DESC',
+        [userId]
+    );
+    return result.rows;
+}
+
+// Function to create a template
+async function createTemplate(userId, name, events) {
+    const db = await getDb();
+    const result = await db.query(
+        'INSERT INTO templates (user_id, name, events) VALUES ($1, $2, $3) RETURNING *',
+        [userId, name, JSON.stringify(events)]
+    );
+    return result.rows[0];
+}
+
+// Function to delete a template
+async function deleteTemplate(userId, templateId) {
+    const db = await getDb();
+    const result = await db.query(
+        'DELETE FROM templates WHERE user_id = $1 AND id = $2 RETURNING id',
+        [userId, templateId]
+    );
+    return result.rows[0];
+}
+
 module.exports = {
     setupDb,
     getAllEvents,
@@ -438,4 +476,7 @@ module.exports = {
     updateEvent,
     getNotes,
     saveNote,
+    getTemplates,
+    createTemplate,
+    deleteTemplate,
 };

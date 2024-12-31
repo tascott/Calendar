@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const compression = require('compression');
-const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks, getNotes, saveNote } = require('./db');
+const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks, getNotes, saveNote, getTemplates, createTemplate, deleteTemplate } = require('./db');
 const path = require('path');
 
 const app = express();
@@ -209,6 +209,43 @@ app.post('/api/notes', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Error saving note:', error);
         res.status(500).json({ error: 'Failed to save note' });
+    }
+});
+
+// Get templates
+app.get('/api/templates', authenticateToken, async (req, res) => {
+    try {
+        const templates = await getTemplates(req.user.id);
+        res.json(templates);
+    } catch (error) {
+        console.error('Error fetching templates:', error);
+        res.status(500).json({ error: 'Failed to fetch templates' });
+    }
+});
+
+// Create template
+app.post('/api/templates', authenticateToken, async (req, res) => {
+    try {
+        const { name, events } = req.body;
+        const template = await createTemplate(req.user.id, name, events);
+        res.json(template);
+    } catch (error) {
+        console.error('Error creating template:', error);
+        res.status(500).json({ error: 'Failed to create template' });
+    }
+});
+
+// Delete template
+app.delete('/api/templates/:id', authenticateToken, async (req, res) => {
+    try {
+        const result = await deleteTemplate(req.user.id, parseInt(req.params.id));
+        if (!result) {
+            return res.status(404).json({ error: 'Template not found' });
+        }
+        res.json({ success: true, id: result.id });
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        res.status(500).json({ error: 'Failed to delete template' });
     }
 });
 

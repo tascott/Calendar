@@ -15,6 +15,7 @@ import TaskForm from './components/TaskForm';
 import { toast } from 'react-hot-toast';
 import NotesPanel from './components/NotesPanel';
 import TasksPanel from './components/TasksPanel';
+import TemplatesModal from './components/TemplatesModal';
 
 const API_URL = process.env.NODE_ENV === 'production'
   ? '/api'  // In production, use relative path
@@ -47,6 +48,7 @@ function App() {
     const [tasks, setTasks] = useState([]);
     const [editingTask, setEditingTask] = useState(null);
     const [activePanel, setActivePanel] = useState(null);
+    const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -833,6 +835,37 @@ function App() {
         setActivePanel(activePanel === panelName ? null : panelName);
     };
 
+    const handleLoadTemplate = async (template) => {
+        try {
+            // Use the currently selected date instead of today
+            const selectedDate = currentDate.toISOString().split('T')[0];
+
+            // Delete all events from the selected date
+            const dateEvents = events.filter(e => e.date === selectedDate);
+            for (const event of dateEvents) {
+                await handleEventUpdate(event.id, { deleted: true });
+            }
+
+            // Create new events from template
+            const templateEvents = template.events.map(event => ({
+                ...event,
+                id: `${Date.now()}-${Math.random()}`, // Generate new ID
+                date: selectedDate, // Set to selected date
+                recurring: 'none', // Remove any recurring settings
+                recurringDays: '{}',
+                recurringEventId: null
+            }));
+
+            // Save all new events at once
+            await saveEvents(templateEvents);
+
+            toast.success('Template applied successfully');
+        } catch (error) {
+            console.error('Failed to load template:', error);
+            toast.error('Failed to apply template');
+        }
+    };
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
@@ -936,6 +969,7 @@ function App() {
                                         currentView={currentView}
                                         onViewChange={setCurrentView}
                                         primaryColor={settings.primaryColor}
+                                        onTemplatesClick={() => setIsTemplatesModalOpen(true)}
                                     />
                                 </div>
                             </div>
@@ -1056,6 +1090,16 @@ function App() {
                                 />
                             </div>
                         </div>
+                    )}
+
+                    {/* Templates Modal */}
+                    {isTemplatesModalOpen && (
+                        <TemplatesModal
+                            onClose={() => setIsTemplatesModalOpen(false)}
+                            events={events}
+                            onLoadTemplate={handleLoadTemplate}
+                            currentDate={currentDate}
+                        />
                     )}
                 </div>
             </DndProvider>

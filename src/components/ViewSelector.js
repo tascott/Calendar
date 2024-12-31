@@ -1,10 +1,10 @@
 import React from 'react';
 
-function ViewSelector({ currentView, onViewChange, primaryColor }) {
+function ViewSelector({ currentView, onViewChange, primaryColor, onTemplatesClick }) {
     const views = ['day', 'week', 'month'];
 
     return (
-        <div className="flex space-x-2">
+        <div className="flex items-center space-x-2">
             {views.map(view => (
                 <button
                     key={view}
@@ -19,6 +19,12 @@ function ViewSelector({ currentView, onViewChange, primaryColor }) {
                     {view.charAt(0).toUpperCase() + view.slice(1)}
                 </button>
             ))}
+            <button
+                onClick={onTemplatesClick}
+                className="px-4 py-2 text-sm font-medium text-[#2C2C2C] border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+            >
+                Templates
+            </button>
         </div>
     );
 }
