@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const compression = require('compression');
-const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks, getNotes, saveNote, getTemplates, createTemplate, deleteTemplate } = require('./db');
+const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSettings, updateSettings, updateEvent, getDb, saveEvent, saveTask, getUserTasks, getNotes, saveNote, getTemplates, createTemplate, deleteTemplate, updateTemplate } = require('./db');
 const path = require('path');
 
 const app = express();
@@ -175,17 +175,6 @@ app.get('/api/tasks', authenticateToken, async (req, res) => {
     }
 });
 
-// Get user settings
-app.get('/api/settings', authenticateToken, async (req, res) => {
-    try {
-        const settings = await getSettings(req.user.id);
-        res.json(settings);
-    } catch (error) {
-        console.error('Error getting settings:', error);
-        res.status(500).json({ error: 'Failed to get settings' });
-    }
-});
-
 // Get user notes
 app.get('/api/notes', authenticateToken, async (req, res) => {
     try {
@@ -212,7 +201,7 @@ app.post('/api/notes', authenticateToken, async (req, res) => {
     }
 });
 
-// Get templates
+// Template routes
 app.get('/api/templates', authenticateToken, async (req, res) => {
     try {
         const templates = await getTemplates(req.user.id);
@@ -223,7 +212,6 @@ app.get('/api/templates', authenticateToken, async (req, res) => {
     }
 });
 
-// Create template
 app.post('/api/templates', authenticateToken, async (req, res) => {
     try {
         const { name, events } = req.body;
@@ -235,7 +223,22 @@ app.post('/api/templates', authenticateToken, async (req, res) => {
     }
 });
 
-// Delete template
+app.put('/api/templates/:id', authenticateToken, async (req, res) => {
+    try {
+        const { name, events } = req.body;
+        const templateId = parseInt(req.params.id);
+        console.log('[Templates] PUT request:', { templateId, name, eventCount: events.length });
+        const template = await updateTemplate(req.user.id, templateId, name, events);
+        if (!template) {
+            return res.status(404).json({ error: 'Template not found' });
+        }
+        res.json(template);
+    } catch (error) {
+        console.error('Error updating template:', error);
+        res.status(500).json({ error: 'Failed to update template' });
+    }
+});
+
 app.delete('/api/templates/:id', authenticateToken, async (req, res) => {
     try {
         const result = await deleteTemplate(req.user.id, parseInt(req.params.id));
@@ -249,7 +252,7 @@ app.delete('/api/templates/:id', authenticateToken, async (req, res) => {
     }
 });
 
-// Handle React routing, return all requests to React app
+// This should be the LAST route
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../build', 'index.html'));
 });

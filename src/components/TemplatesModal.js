@@ -6,6 +6,7 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
     const [templates, setTemplates] = useState([]);
     const [newTemplateName, setNewTemplateName] = useState('');
     const [loading, setLoading] = useState(false);
+    const [editingTemplate, setEditingTemplate] = useState(null);
 
     // Fetch templates on mount
     useEffect(() => {
@@ -41,8 +42,21 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
                 return;
             }
 
-            await fetch(`${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'}/templates`, {
-                method: 'POST',
+            console.log('[Templates] Saving template:', {
+                id: editingTemplate?.id,
+                name: newTemplateName,
+                eventCount: selectedDayEvents.length,
+                method: editingTemplate ? 'PUT' : 'POST'
+            });
+
+            const endpoint = editingTemplate
+                ? `${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'}/templates/${editingTemplate.id}`
+                : `${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'}/templates`;
+
+            const method = editingTemplate ? 'PUT' : 'POST';
+
+            const response = await fetch(endpoint, {
+                method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -53,15 +67,31 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
                 })
             });
 
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save template');
+            }
+
+            const data = await response.json();
+            console.log('[Templates] Save response:', data);
+
             setNewTemplateName('');
+            setEditingTemplate(null);
             fetchTemplates();
-            toast.success('Template created successfully');
+            toast.success(editingTemplate ? 'Template updated successfully' : 'Template created successfully');
+            setActiveTab('list');
         } catch (error) {
-            console.error('Failed to create template:', error);
-            toast.error('Failed to create template');
+            console.error('[Templates] Save error:', error);
+            toast.error(error.message || (editingTemplate ? 'Failed to update template' : 'Failed to create template'));
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleEditTemplate = (template) => {
+        setEditingTemplate(template);
+        setNewTemplateName(template.name);
+        setActiveTab('new');
     };
 
     const handleLoadTemplate = async (template) => {
@@ -102,7 +132,9 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
     const renderNewTemplate = () => (
         <form onSubmit={handleCreateTemplate} className="space-y-4">
             <p className="text-sm text-[#2C2C2C]/70">
-                Create a new template from the selected date's events.
+                {editingTemplate
+                    ? 'Edit template using the selected date\'s events.'
+                    : 'Create a new template from the selected date\'s events.'}
             </p>
             <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
@@ -122,8 +154,20 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
                 disabled={loading}
                 className="w-full px-4 py-2 text-sm font-medium text-[#2C2C2C] border-2 border-[#2C2C2C] rounded hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200"
             >
-                {loading ? 'Creating...' : 'Create Template'}
+                {loading ? 'Saving...' : (editingTemplate ? 'Update Template' : 'Create Template')}
             </button>
+            {editingTemplate && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        setEditingTemplate(null);
+                        setNewTemplateName('');
+                    }}
+                    className="w-full px-4 py-2 text-sm font-medium text-[#2C2C2C] border border-[#2C2C2C] rounded hover:bg-[#2C2C2C]/10 transition-colors duration-200"
+                >
+                    Cancel Edit
+                </button>
+            )}
         </form>
     );
 
@@ -153,6 +197,12 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
                                         className="px-3 py-1 text-sm text-[#2C2C2C] border border-[#2C2C2C] rounded hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors"
                                     >
                                         Load
+                                    </button>
+                                    <button
+                                        onClick={() => handleEditTemplate(template)}
+                                        className="px-3 py-1 text-sm text-[#2C2C2C] border border-[#2C2C2C] rounded hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors"
+                                    >
+                                        Edit
                                     </button>
                                     <button
                                         onClick={(e) => handleDeleteTemplate(template.id, e)}

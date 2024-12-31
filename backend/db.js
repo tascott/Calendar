@@ -461,6 +461,27 @@ async function deleteTemplate(userId, templateId) {
     return result.rows[0];
 }
 
+// Function to update a template
+async function updateTemplate(userId, templateId, name, events) {
+    const db = await getDb();
+    try {
+        console.log('[Templates] Updating template:', { userId, templateId, name, eventCount: events.length });
+        const result = await db.query(
+            'UPDATE templates SET name = $1, events = $2 WHERE user_id = $3 AND id = $4 RETURNING *',
+            [name, JSON.stringify(events), userId, templateId]
+        );
+        console.log('[Templates] Update result:', result.rows);
+        if (result.rows.length === 0) {
+            console.log('[Templates] No template found with id:', templateId);
+            return null;
+        }
+        return result.rows[0];
+    } catch (error) {
+        console.error('[Templates] Update error:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     setupDb,
     getAllEvents,
@@ -479,4 +500,5 @@ module.exports = {
     getTemplates,
     createTemplate,
     deleteTemplate,
+    updateTemplate,
 };
