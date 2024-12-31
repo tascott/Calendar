@@ -137,8 +137,11 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
 
             return {
                 id: event.id,
+                name: event.name,
                 startMinutes: timeToMinutes(event.startTime),
                 duration: timeToMinutes(event.endTime) - timeToMinutes(event.startTime),
+                startTime: event.startTime,
+                endTime: event.endTime,
                 xPosition: event.xPosition || 0,
                 width: event.width || 50,
                 type: event.type,
@@ -363,8 +366,7 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
             const y = clientOffset.y - rect.top;
             const x = clientOffset.x - rect.left;
 
-            if (item.type === DRAG_TYPE) {
-                // Handle event dragging (existing code)
+            if (item.type === DRAG_TYPE || item.type === 'status' || item.type === 'focus') {
                 let newStartMinutes = calculateMinutesFromMousePosition(y, rect, item.grabOffset);
                 const newXPosition = calculateXPosition(x, rect, item.grabOffset, item.width, item.type);
 
@@ -388,9 +390,14 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
 
                 item.currentPosition = {
                     id: item.id,
+                    name: item.name,
                     startTime,
                     endTime,
                     xPosition: newXPosition,
+                    width: item.width,
+                    type: item.type,
+                    backgroundColor: item.backgroundColor,
+                    color: item.color,
                     isDragging: true,
                     isVisualOnly: true,
                     date: currentDateStr
@@ -400,13 +407,19 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
             }
         },
         drop: (item, monitor) => {
-            if (item.type === DRAG_TYPE) {
+            if (item.type === DRAG_TYPE || item.type === 'status' || item.type === 'focus') {
                 if (item.currentPosition) {
                     const { isVisualOnly, ...finalPosition } = item.currentPosition;
                     onEventUpdate(item.id, {
+                        ...item,
                         ...finalPosition,
+                        name: item.name,
                         isDragging: false,
-                        date: currentDateStr
+                        date: currentDateStr,
+                        width: item.width,
+                        type: item.type,
+                        backgroundColor: item.backgroundColor,
+                        color: item.color
                     });
                 }
             } else {
