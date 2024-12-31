@@ -49,6 +49,7 @@ function App() {
     const [editingTask, setEditingTask] = useState(null);
     const [activePanel, setActivePanel] = useState(null);
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
+    const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
 
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
@@ -835,6 +836,7 @@ function App() {
 
     const handleLoadTemplate = async (template) => {
         try {
+            setIsLoadingTemplate(true);
             // Use the currently selected date instead of today
             const selectedDate = currentDate.toISOString().split('T')[0];
 
@@ -861,6 +863,8 @@ function App() {
         } catch (error) {
             console.error('Failed to load template:', error);
             toast.error('Failed to apply template');
+        } finally {
+            setIsLoadingTemplate(false);
         }
     };
 
@@ -884,7 +888,8 @@ function App() {
             },
             tasks,
             onTaskClick: handleTaskClick,
-            onTaskUpdate: handleTaskUpdate
+            onTaskUpdate: handleTaskUpdate,
+            isLoading: isLoadingTemplate
         };
 
         switch (currentView) {

@@ -41,7 +41,7 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
     const startMinutes = timeToMinutes(event.startTime);
     const endMinutes = timeToMinutes(event.endTime);
     const duration = endMinutes - startMinutes;
-    const isShortEvent = duration < 45; // Check if event is less than 45 minutes
+    const isShortEvent = duration <= 45; // Check if event is 45 minutes or less
 
     // Get visible time range
     const visibleStartMinutes = timeToMinutes(settings?.dayStartTime || '00:00');
@@ -247,7 +247,7 @@ function OutOfRangeIndicator({ position, count }) {
     );
 }
 
-function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentDate = new Date(), onNavigate, tasks = [], onTaskUpdate }) {
+function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentDate = new Date(), onNavigate, tasks = [], onTaskUpdate, isLoading }) {
     const [selectedTask, setSelectedTask] = useState(null);
     const gridRef = useRef(null);
 
@@ -518,6 +518,16 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                         gridTemplateRows: `repeat(${visibleHours}, 3rem)`
                     }}
                 >
+                    {/* Loading Overlay */}
+                    {isLoading && (
+                        <div className="fixed inset-0 bg-[#F6F5F1] bg-opacity-80 backdrop-blur-sm flex items-center justify-center z-[1300]">
+                            <div className="flex flex-col items-center space-y-4 bg-white p-6 rounded-lg shadow-lg">
+                                <div className="w-12 h-12 border-4 border-[#2C2C2C] border-t-transparent rounded-full animate-spin"></div>
+                                <div className="text-[#2C2C2C] font-medium text-lg">Loading template...</div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Task indicators */}
                     {tasks.filter(task => task.date === currentDate.toISOString().split('T')[0]).map(task => {
                         const minutes = timeToMinutes(task.time);
