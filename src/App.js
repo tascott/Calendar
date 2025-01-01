@@ -18,9 +18,20 @@ import TasksPanel from './components/TasksPanel';
 import TemplatesModal from './components/TemplatesModal';
 import { VERSION } from './version';
 
-const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://calendar-production-9074.up.railway.app/api'  // Use full Railway URL in production
-  : 'http://localhost:3001/api'; // In development, use full URL
+console.log('Current environment:', process.env.NODE_ENV);
+console.log('All env vars:', process.env);
+
+// API URL Configuration
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = `${BASE_URL}/api`;
+
+console.log('Base URL:', BASE_URL);
+console.log('API URL:', API_URL);
+
+// Configure axios defaults
+axios.defaults.baseURL = API_URL;
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+
 function App() {
     const [currentView, setCurrentView] = useState('day');
     const [events, setEvents] = useState([]);
@@ -52,6 +63,15 @@ function App() {
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
     const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
 
+    // Update axios auth header when token changes
+    useEffect(() => {
+        if (token) {
+            axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        } else {
+            delete axios.defaults.headers.common['Authorization'];
+        }
+    }, [token]);
+
     // Choose the appropriate backend based on device type
     const dndBackend = isTouchDevice() ? TouchBackend : HTML5Backend;
     const dndOptions = isTouchDevice() ? {
@@ -64,7 +84,7 @@ function App() {
         try {
             if (token) {
                 console.log('[Settings] Attempting to fetch settings');
-                const response = await axiosInstance.get('/settings');
+                const response = await axios.get('/settings');
                 console.log('[Settings] Fetch successful:', response.data);
                 setSettings(response.data);
             }
@@ -78,15 +98,22 @@ function App() {
         // Check for token on mount
         const storedToken = localStorage.getItem('token');
         if (storedToken) {
+            console.log('[Auth] Found stored token');
             setToken(storedToken);
             setIsLoginModalOpen(false);
+        } else {
+            console.log('[Auth] No stored token found');
+            setIsLoginModalOpen(true);
         }
     }, []); // Only run on mount
 
-    // Effect to load settings when token changes
+    // Effect to load all data when token changes
     useEffect(() => {
         if (token) {
+            console.log('[Auth] Token present, loading data');
             loadSettings();
+            fetchEvents();
+            fetchTasks();
         }
     }, [token]);
 
@@ -140,9 +167,8 @@ function App() {
 
     // Create axios instance with default config
     const axiosInstance = axios.create({
-        baseURL: API_URL,
         headers: {
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${token}`
         }
     });
 
@@ -188,21 +214,11 @@ function App() {
     const fetchEvents = async () => {
         console.log('[Events] Attempting to fetch events');
         try {
-            const response = await fetch(`${API_URL}/events`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            if (response.status === 401) {
-                console.log('[Events] Unauthorized - showing login modal');
-                setIsLoginModalOpen(true);
-                return;
-            }
-            const data = await response.json();
-            console.log('[Events] Fetch successful, count:', data.length);
+            const response = await axios.get('/events');
+            console.log('[Events] Fetch successful, count:', response.data.length);
 
             // Normalize field names from database format to frontend format
-            const normalizedEvents = data.map(event => ({
+            const normalizedEvents = response.data.map(event => ({
                 ...event,
                 startTime: event.starttime,
                 endTime: event.endtime,
@@ -215,9 +231,8 @@ function App() {
 
             setEvents(normalizedEvents);
         } catch (error) {
-            console.error('[Events] Fetch failed:', error);
+            console.error('[Events] Fetch failed:', error.response?.status, error.response?.data);
             if (error.response?.status === 401) {
-                console.error('[Events] Unauthorized - showing login modal');
                 setIsLoginModalOpen(true);
             }
         }
@@ -230,14 +245,7 @@ function App() {
                 console.log('[DELETE] Sending to backend:', newEvents);
             }
 
-            const response = await fetch(`${API_URL}/events`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(Array.isArray(newEvents) ? newEvents : [newEvents])
-            });
+            const response = await axios.post('/events', newEvents);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -282,7 +290,7 @@ function App() {
 
         try {
             console.log('[Login] Attempting login for:', username);
-            const response = await axios.post(`${API_URL}/login`, {
+            const response = await axios.post('/login', {
                 username,
                 password
             });
@@ -357,16 +365,6 @@ function App() {
         setIsLoginModalOpen(true);
         toast.success('Logged out successfully');
     };
-
-    // Effect to fetch events when authenticated
-    useEffect(() => {
-        if (token) {
-            console.log('[Auth] Token present, fetching events');
-            fetchEvents();
-        } else {
-            console.log('[Auth] No token available');
-        }
-    }, [token]);
 
     const handleEventUpdate = (eventId, updates) => {
         // If this is a deletion (updates.deleted is true), handle recurring events
@@ -650,27 +648,16 @@ function App() {
     };
 
     const fetchTasks = async () => {
+        console.log('[Tasks] Fetching tasks');
         try {
-            console.log('[Tasks] Fetching tasks');
-            const response = await fetch(`${API_URL}/tasks`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
-            console.log('[Tasks] Fetch successful:', data);
-
-            // Normalize field names from database format to frontend format
-            const normalizedTasks = data.map(task => ({
-                ...task,
-                startTime: task.starttime,
-                endTime: task.endtime,
-                createdAt: task.created_at
-            }));
-
-            setTasks(normalizedTasks);
+            const response = await axios.get('/tasks');
+            console.log('[Tasks] Fetch successful:', response.data);
+            setTasks(response.data);
         } catch (error) {
-            console.error('[Tasks] Error fetching tasks:', error);
+            console.error('[Tasks] Fetch failed:', error.response?.status, error.response?.data);
+            if (error.response?.status === 401) {
+                setIsLoginModalOpen(true);
+            }
         }
     };
 
@@ -763,35 +750,6 @@ function App() {
             toast.error('Failed to update task');
             // Revert any optimistic updates on error
             fetchTasks();
-        }
-    };
-
-    // Load events for the user
-    const loadEvents = async () => {
-        try {
-            const response = await fetch(`${API_URL}/events`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            const data = await response.json();
-
-            // Normalize field names from database format to frontend format
-            const normalizedEvents = data.map(event => ({
-                ...event,
-                startTime: event.starttime,
-                endTime: event.endtime,
-                xPosition: event.xposition,
-                backgroundColor: event.backgroundcolor,
-                overlayText: event.overlaytext,
-                recurringDays: event.recurringdays,
-                recurringEventId: event.recurringeventid
-            }));
-
-            setEvents(normalizedEvents);
-        } catch (error) {
-            console.error('[Events] Load error:', error);
-            toast.error('Failed to load events');
         }
     };
 
@@ -902,13 +860,6 @@ function App() {
                 return <DayView {...props} events={events} />;
         }
     };
-
-    // Add effect to fetch tasks when authenticated
-    useEffect(() => {
-        if (token) {
-            fetchTasks();
-        }
-    }, [token]);
 
     return (
         <>

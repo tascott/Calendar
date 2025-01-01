@@ -1,6 +1,6 @@
 {
   "name": "calendar",
-  "version": "1.0.1",
+  "version": "1.0.11",
   "dependencies": {
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^13.4.0",
@@ -27,7 +27,9 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "concurrently \"npm start\" \"cd backend && node index.js\"",
-    "version:patch": "node scripts/bump-version.js"
+    "version:patch": "node scripts/bump-version.js",
+    "start:prod": "cd backend && node index.js",
+    "postinstall": "cd backend && npm install"
   },
   "browserslist": {
     "production": [
