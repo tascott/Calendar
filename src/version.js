@@ -1,2 +1,2 @@
-// This file is automatically updated during build
-export const VERSION = process.env.REACT_APP_GIT_SHA || 'development';
+// This file is automatically updated by bump-version.js
+export const VERSION = '1.0.1';
