@@ -247,36 +247,44 @@ function App() {
                 console.log('[DELETE] Sending to backend:', newEvents);
             }
 
-            const response = await axios.post('/events', newEvents);
+            // Convert to array if single event
+            const eventsToSave = Array.isArray(newEvents) ? newEvents : [newEvents];
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            // Convert frontend camelCase to backend lowercase for all events
+            const normalizedEvents = eventsToSave.map(event => ({
+                ...event,
+                starttime: event.startTime,
+                endtime: event.endTime,
+                xposition: event.xPosition,
+                backgroundcolor: event.backgroundColor,
+                overlaytext: event.overlayText,
+                recurringdays: event.recurringDays,
+                recurringeventid: event.recurringEventId
+            }));
 
-            const data = await response.json();
-            console.log('[Events] Save successful, updating state with response:', data);
+            // Send all events in a single request
+            const response = await axios.post('/events', normalizedEvents);
+            console.log('[Events] Save successful:', response.data);
 
             // For delete operations, just update the state
-            if (Array.isArray(newEvents) && newEvents.some(e => e.deleted)) {
-                const deletedIds = newEvents.filter(e => e.deleted).map(e => e.id);
+            if (eventsToSave.some(e => e.deleted)) {
+                const deletedIds = eventsToSave.filter(e => e.deleted).map(e => e.id);
                 setEvents(prev => prev.filter(e => !deletedIds.includes(e.id)));
                 return;
             }
 
-            // For non-delete operations, normalize and update state
-            if (Array.isArray(data)) {
-                const normalizedEvents = data.map(event => ({
-                    ...event,
-                    startTime: event.starttime,
-                    endTime: event.endtime,
-                    xPosition: event.xposition,
-                    backgroundColor: event.backgroundcolor,
-                    overlayText: event.overlaytext,
-                    recurringDays: event.recurringdays,
-                    recurringEventId: event.recurringeventid
-                }));
-                setEvents(normalizedEvents);
-            }
+            // For non-delete operations, update state with normalized response data
+            const updatedEvents = response.data.map(event => ({
+                ...event,
+                startTime: event.starttime,
+                endTime: event.endtime,
+                xPosition: event.xposition,
+                backgroundColor: event.backgroundcolor,
+                overlayText: event.overlaytext,
+                recurringDays: event.recurringdays,
+                recurringEventId: event.recurringeventid
+            }));
+            setEvents(updatedEvents);
         } catch (error) {
             console.error('[Events] Save error:', error);
             toast.error('Failed to save events');
@@ -734,7 +742,6 @@ function App() {
             if (updatedTask.deleted) {
                 // If task was deleted, filter it out from the local state
                 setTasks(prevTasks => prevTasks.filter(task => task.id !== updatedTask.id));
-                toast.success('Task deleted');
             } else {
                 // Update just the modified task in the state with server response
                 const normalizedTask = {
@@ -848,7 +855,7 @@ function App() {
         const handleFullscreenChange = () => {
             setIsFullscreen(!!document.fullscreenElement);
         };
-        
+
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, []);
@@ -938,7 +945,6 @@ function App() {
                                                 Settings
                                             </button>
                                             <button
-                                                className="logout-button"
                                                 onClick={handleLogout}
                                                 className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
                                             >
@@ -947,7 +953,7 @@ function App() {
                                             <button
                                                 className="fullscreen-button"
                                                 onClick={toggleFullscreen}
-                                                style={{ 
+                                                style={{
                                                     padding: '8px',
                                                     backgroundColor: '#f0f0f0',
                                                     border: '1px solid #ccc',
@@ -960,8 +966,8 @@ function App() {
                                                 }}
                                                 title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                                             >
-                                                {isFullscreen ? 
-                                                    <RiFullscreenExitFill size={20} /> : 
+                                                {isFullscreen ?
+                                                    <RiFullscreenExitFill size={20} /> :
                                                     <RiFullscreenFill size={20} />
                                                 }
                                             </button>
