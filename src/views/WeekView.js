@@ -32,7 +32,7 @@ function WeekEvent({ event, settings, onEventClick }) {
     return (
         <div
             onClick={() => onEventClick(event.startTime, event)}
-            className={`absolute rounded-[1px] border border-[#D3D1C7] cursor-pointer hover:opacity-75 ${
+            className={`absolute rounded-[1px] border border-[#D3D1C7] cursor-pointer hover:opacity-75 overflow-hidden ${
                 isStatus ? 'bg-yellow-100' : 'bg-blue-100'
             }`}
             style={{
@@ -47,13 +47,13 @@ function WeekEvent({ event, settings, onEventClick }) {
                 padding: isShortEvent ? '0.25rem 0.5rem' : '0.5rem'
             }}
         >
-            <div className="flex items-start space-x-1">
+            <div className="flex items-start space-x-1 max-w-full">
                 {event.isRecurring && (
-                    <div className="recurring-icon">
+                    <div className="recurring-icon flex-shrink-0">
                         <span className="material-icons text-xs" style={{ fontSize: '14px' }}>autorenew</span>
                     </div>
                 )}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                     {isShortEvent ? (
                         <div className="truncate">
                             {event.name} ({event.startTime})
