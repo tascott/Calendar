@@ -16,9 +16,10 @@ import { toast } from 'react-hot-toast';
 import NotesPanel from './components/NotesPanel';
 import TasksPanel from './components/TasksPanel';
 import TemplatesModal from './components/TemplatesModal';
+import { VERSION } from './version';
 
 const API_URL = process.env.NODE_ENV === 'production'
-  ? '/api'  // In production, use relative path
+  ? 'https://calendar-production-9074.up.railway.app/api'  // Use full Railway URL in production
   : 'http://localhost:3001/api'; // In development, use full URL
 function App() {
     const [currentView, setCurrentView] = useState('day');
@@ -216,7 +217,7 @@ function App() {
         } catch (error) {
             console.error('[Events] Fetch failed:', error);
             if (error.response?.status === 401) {
-                console.log('[Events] Unauthorized - showing login modal');
+                console.error('[Events] Unauthorized - showing login modal');
                 setIsLoginModalOpen(true);
             }
         }
@@ -933,36 +934,39 @@ function App() {
                         <div className="max-w-[1600px] w-full mx-auto px-8 py-6">
                             <div className="flex flex-col space-y-4">
                                 {/* First row: Calendar title and buttons */}
-                                <div className="flex justify-between items-center">
+                                <div className="flex items-center justify-between mb-4">
                                     <h1 className="text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
-                                    <div className="flex space-x-4">
-                                        <button
-                                            onClick={() => {
-                                                setEditingEvent(null);
-                                                setIsModalOpen(true);
-                                            }}
-                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                        >
-                                            New Event
-                                        </button>
-                                        <button
-                                            onClick={() => setIsTaskModalOpen(true)}
-                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                        >
-                                            New Task
-                                        </button>
-                                        <button
-                                            onClick={() => setIsSettingsOpen(true)}
-                                            className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
-                                        >
-                                            Settings
-                                        </button>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
-                                        >
-                                            Logout
-                                        </button>
+                                    <div className="flex items-center gap-4">
+                                        <span className="text-xs text-gray-500 font-mono">{VERSION}</span>
+                                        <div className="flex space-x-4">
+                                            <button
+                                                onClick={() => {
+                                                    setEditingEvent(null);
+                                                    setIsModalOpen(true);
+                                                }}
+                                                className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                                New Event
+                                            </button>
+                                            <button
+                                                onClick={() => setIsTaskModalOpen(true)}
+                                                className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                                New Task
+                                            </button>
+                                            <button
+                                                onClick={() => setIsSettingsOpen(true)}
+                                                className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                                Settings
+                                            </button>
+                                            <button
+                                                onClick={handleLogout}
+                                                className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
+                                            >
+                                                Logout
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 

@@ -16,7 +16,7 @@ function StatusOverlay({ isActive, event }) {
         if (shouldShowOverlay) {
             // Start fade in
             setOpacity(0);
-            setTimeout(() => setOpacity(80), 50);
+            setTimeout(() => setOpacity(95), 50);
             setIsBlinking(true);
 
             // Reset text and start typing animation
@@ -61,14 +61,14 @@ function StatusOverlay({ isActive, event }) {
     return (
         <div
             className="fixed inset-0 bg-black pointer-events-none z-40 flex items-center justify-center transition-opacity duration-1000"
-            style={{ opacity: `${opacity}%` }}
+            style={{ opacity: `${opacity * 0.9}%` }}
         >
-            <div className="relative">
+            <div className="relative text-center w-full px-4">
                 {/* Text with typing animation */}
-                <div className="text-white text-8xl font-bold tracking-wider">
+                <div className="text-white text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-wider">
                     {text}
                     {isBlinking && (
-                        <span className="inline-block w-[4px] h-[80px] bg-white ml-2 animate-blink"></span>
+                        <span className="inline-block w-[3px] sm:w-[4px] h-[40px] sm:h-[60px] md:h-[70px] bg-white ml-2 animate-blink"></span>
                     )}
                 </div>
             </div>
