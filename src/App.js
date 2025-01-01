@@ -17,6 +17,7 @@ import NotesPanel from './components/NotesPanel';
 import TasksPanel from './components/TasksPanel';
 import TemplatesModal from './components/TemplatesModal';
 import { VERSION } from './version';
+import { RiFullscreenFill, RiFullscreenExitFill } from 'react-icons/ri';
 
 console.log('Current environment:', process.env.NODE_ENV);
 console.log('All env vars:', process.env);
@@ -62,6 +63,7 @@ function App() {
     const [activePanel, setActivePanel] = useState(null);
     const [isTemplatesModalOpen, setIsTemplatesModalOpen] = useState(false);
     const [isLoadingTemplate, setIsLoadingTemplate] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
 
     // Update axios auth header when token changes
     useEffect(() => {
@@ -827,6 +829,30 @@ function App() {
         }
     };
 
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.error(`Error attempting to enable fullscreen: ${err.message}`);
+            });
+            setIsFullscreen(true);
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+                setIsFullscreen(false);
+            }
+        }
+    };
+
+    // Update fullscreen state when it changes externally (e.g., Esc key)
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
     const renderView = () => {
         const props = {
             onDoubleClick: handleGridDoubleClick,
@@ -912,10 +938,32 @@ function App() {
                                                 Settings
                                             </button>
                                             <button
+                                                className="logout-button"
                                                 onClick={handleLogout}
                                                 className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
                                             >
                                                 Logout
+                                            </button>
+                                            <button
+                                                className="fullscreen-button"
+                                                onClick={toggleFullscreen}
+                                                style={{ 
+                                                    padding: '8px',
+                                                    backgroundColor: '#f0f0f0',
+                                                    border: '1px solid #ccc',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    marginLeft: '10px'
+                                                }}
+                                                title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                                            >
+                                                {isFullscreen ? 
+                                                    <RiFullscreenExitFill size={20} /> : 
+                                                    <RiFullscreenFill size={20} />
+                                                }
                                             </button>
                                         </div>
                                     </div>

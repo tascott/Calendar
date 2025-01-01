@@ -1,6 +1,6 @@
 {
   "name": "calendar",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "dependencies": {
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^13.4.0",
