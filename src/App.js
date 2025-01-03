@@ -33,6 +33,29 @@ console.log('API URL:', API_URL);
 axios.defaults.baseURL = API_URL;
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 
+// Single combined interceptor for all response handling
+axios.interceptors.response.use(
+    (response) => {
+        console.log('[Response] Success:', response.config.url, response.status);
+        return response;
+    },
+    (error) => {
+        console.error(
+            '[Response Error]',
+            'URL:', error.config?.url,
+            'Status:', error.response?.status,
+            'Message:', error.response?.data?.error
+        );
+
+        if (error.response?.status === 403 && error.response?.data?.error === 'Invalid or expired token') {
+            // Clear token and show login modal
+            localStorage.removeItem('token');
+            window.dispatchEvent(new CustomEvent('tokenExpired'));
+        }
+        return Promise.reject(error);
+    }
+);
+
 function App() {
     const [currentView, setCurrentView] = useState('day');
     const [events, setEvents] = useState([]);
@@ -858,6 +881,18 @@ function App() {
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    // Add event listener for token expiration
+    useEffect(() => {
+        const handleTokenExpired = () => {
+            setToken(null);
+            setIsLoginModalOpen(true);
+            toast.error('Your session has expired. Please log in again.');
+        };
+
+        window.addEventListener('tokenExpired', handleTokenExpired);
+        return () => window.removeEventListener('tokenExpired', handleTokenExpired);
     }, []);
 
     const renderView = () => {
