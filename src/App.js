@@ -830,14 +830,18 @@ function App() {
             });
 
             // Remove from local state first
+            let eventsToDelete;
             if (eventData.recurringEventId) {
+                const recurringEvents = events.filter(e => e.recurringEventId === eventData.recurringEventId);
+                eventsToDelete = recurringEvents.map(e => ({ ...e, deleted: true }));
                 setEvents(prev => prev.filter(e => e.recurringEventId !== eventData.recurringEventId));
             } else {
+                eventsToDelete = [eventData];
                 setEvents(prev => prev.filter(e => e.id !== eventData.id));
             }
 
             // Then delete from database
-            saveEvents(eventData);
+            saveEvents(eventsToDelete);
             setIsModalOpen(false);
             return;
         }
