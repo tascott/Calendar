@@ -494,6 +494,7 @@ function App() {
         // Ensure recurringDays is properly stringified and handle recurring property
         const processedEventData = {
             ...eventData,
+            date: eventData.date || currentDate.toISOString().split('T')[0], // Ensure we have a date
             // Only include recurring properties if the event is actually recurring
             ...(eventData.recurring === 'none' ? {
                 recurring: 'none',
@@ -596,7 +597,10 @@ function App() {
         const xPosition = options?.xPosition;
 
         setSelectedTime(initialTime);
-        setEditingEvent(event);
+        setEditingEvent({
+            ...event,
+            date: currentDate.toISOString().split('T')[0]  // Pass the selected date
+        });
         setIsModalOpen(true);
     };
 
@@ -1039,7 +1043,7 @@ function App() {
                                     onSubmit={handleNewEvent}
                                     onCancel={handleModalClose}
                                     initialTime={selectedTime}
-                                    initialDate={selectedTime ? new Date().toISOString().split('T')[0] : undefined}
+                                    initialDate={currentDate.toISOString().split('T')[0]}
                                     initialData={editingEvent}
                                     settings={settings}
                                 />
