@@ -469,138 +469,22 @@ function App() {
         setEvents(eventsToUpdate);
     };
 
-    const handleNewEvent = (eventData) => {
-        // If this is a deletion
-        if (eventData.deleted) {
-            console.log('[DELETE] Processing delete in App:', {
-                id: eventData.id,
-                recurring: eventData.recurring,
-                recurringEventId: eventData.recurringEventId
-            });
-
-            // Remove from local state first
-            if (eventData.recurringEventId) {
-                setEvents(prev => prev.filter(e => e.recurringEventId !== eventData.recurringEventId));
-            } else {
-                setEvents(prev => prev.filter(e => e.id !== eventData.id));
-            }
-
-            // Then delete from database
-            saveEvents(eventData);
-            setIsModalOpen(false);
-            return;
-        }
-
-        // Ensure recurringDays is properly stringified and handle recurring property
-        const processedEventData = {
-            ...eventData,
-            date: eventData.date || currentDate.toISOString().split('T')[0], // Ensure we have a date
-            // Only include recurring properties if the event is actually recurring
-            ...(eventData.recurring === 'none' ? {
-                recurring: 'none',
-                recurringDays: '{}',
-                recurringEventId: null
-            } : {
-                recurring: eventData.recurring,
-                recurringDays: typeof eventData.recurringDays === 'string'
-                    ? eventData.recurringDays
-                    : JSON.stringify(eventData.recurringDays || {}),
-                recurringEventId: eventData.recurringEventId || `recurring-${Date.now()}`
-            })
-        };
-
-        if (editingEvent) {
-            // Update existing event
-            const updatedEvents = events.map(event => {
-                // If this is a recurring event, update all events in the series
-                if (editingEvent.recurringEventId && event.recurringEventId === editingEvent.recurringEventId) {
-                    let newXPosition = event.xPosition;
-                    if (newXPosition + processedEventData.width > 100) {
-                        newXPosition = Math.max(0, 100 - processedEventData.width);
-                    }
-                    return {
-                        ...processedEventData,
-                        id: event.id,
-                        date: event.date, // Keep original date for each instance
-                        xPosition: newXPosition
-                    };
-                } else if (event.id === editingEvent.id) {
-                    let newXPosition = event.xPosition;
-                    if (newXPosition + processedEventData.width > 100) {
-                        newXPosition = Math.max(0, 100 - processedEventData.width);
-                    }
-                    const updatedEvent = {
-                        ...processedEventData,
-                        id: event.id,
-                        xPosition: newXPosition
-                    };
-                    // Save only the updated event
-                    saveEvents(updatedEvent);
-                    return updatedEvent;
-                }
-                return event;
-            });
-            setEvents(updatedEvents);
-        } else {
-            // Create new event
-            const isStatus = processedEventData.type === 'status';
-            const baseEvent = {
-                ...processedEventData,
-                width: isStatus ? settings.defaultStatusWidth : settings.defaultEventWidth,
-                xPosition: isStatus ? (100 - settings.defaultStatusWidth) : 0
-            };
-
-            // For daily recurring events, create an event for each selected day
-            let newEvents = [];
-            if (processedEventData.recurring === 'daily') {
-                const recurringDays = JSON.parse(processedEventData.recurringDays);
-                const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                const startDate = new Date(processedEventData.date);
-
-                // Create events for the next 3 months
-                for (let i = 0; i < 90; i++) {
-                    const currentDate = new Date(startDate);
-                    currentDate.setDate(startDate.getDate() + i);
-                    const dayName = daysOfWeek[currentDate.getDay()];
-
-                    if (recurringDays[dayName]) {
-                        newEvents.push({
-                            ...baseEvent,
-                            id: Date.now() + i,
-                            date: currentDate.toISOString().split('T')[0]
-                        });
-                    }
-                }
-            } else {
-                newEvents = [{
-                    ...baseEvent,
-                    id: Date.now(),
-                    recurring: 'none',
-                    recurringDays: '{}',
-                    recurringEventId: null
-                }];
-            }
-
-            // Save only the new events
-            saveEvents(newEvents);
-            setEvents([...events, ...newEvents]);
-        }
-        setIsModalOpen(false);
-        setEditingEvent(null);
-    };
-
     const handleGridDoubleClick = (time, event = null, options = {}) => {
+        console.log('[GridDoubleClick] Called with:', { time, event, options });
         // If we have an event object, use its start time
         const initialTime = event ? event.startTime : (time || '09:00');
 
         // If we have x position from options (for day view), use it
         const xPosition = options?.xPosition;
 
-        setSelectedTime(initialTime);
-        setEditingEvent({
-            ...event,
-            date: currentDate.toISOString().split('T')[0]  // Pass the selected date
+        console.log('[GridDoubleClick] Setting state:', {
+            initialTime,
+            xPosition,
+            currentDate: currentDate.toISOString().split('T')[0]
         });
+
+        setSelectedTime(initialTime);
+        setEditingEvent(event);  // Don't wrap in an object, just pass the event directly
         setIsModalOpen(true);
     };
 
@@ -931,6 +815,132 @@ function App() {
             default:
                 return <DayView {...props} events={events} />;
         }
+    };
+
+    const handleNewEvent = (eventData) => {
+        console.log('[NewEvent] Starting with data:', eventData);
+        console.log('[NewEvent] Current editing state:', { editingEvent, currentDate: currentDate.toISOString().split('T')[0] });
+
+        // If this is a deletion
+        if (eventData.deleted) {
+            console.log('[DELETE] Processing delete in App:', {
+                id: eventData.id,
+                recurring: eventData.recurring,
+                recurringEventId: eventData.recurringEventId
+            });
+
+            // Remove from local state first
+            if (eventData.recurringEventId) {
+                setEvents(prev => prev.filter(e => e.recurringEventId !== eventData.recurringEventId));
+            } else {
+                setEvents(prev => prev.filter(e => e.id !== eventData.id));
+            }
+
+            // Then delete from database
+            saveEvents(eventData);
+            setIsModalOpen(false);
+            return;
+        }
+
+        // Ensure recurringDays is properly stringified and handle recurring property
+        const processedEventData = {
+            ...eventData,
+            id: eventData.id || Date.now().toString(),  // Ensure we have an ID
+            date: eventData.date || currentDate.toISOString().split('T')[0], // Ensure we have a date
+            // Only include recurring properties if the event is actually recurring
+            ...(eventData.recurring === 'none' ? {
+                recurring: 'none',
+                recurringDays: '{}',
+                recurringEventId: null
+            } : {
+                recurring: eventData.recurring,
+                recurringDays: typeof eventData.recurringDays === 'string'
+                    ? eventData.recurringDays
+                    : JSON.stringify(eventData.recurringDays || {}),
+                recurringEventId: eventData.recurringEventId || `recurring-${Date.now()}`
+            })
+        };
+
+        console.log('[NewEvent] Processed event data:', processedEventData);
+
+        if (editingEvent) {
+            // Update existing event
+            const updatedEvents = events.map(event => {
+                // If this is a recurring event, update all events in the series
+                if (editingEvent.recurringEventId && event.recurringEventId === editingEvent.recurringEventId) {
+                    let newXPosition = event.xPosition;
+                    if (newXPosition + processedEventData.width > 100) {
+                        newXPosition = Math.max(0, 100 - processedEventData.width);
+                    }
+                    return {
+                        ...processedEventData,
+                        id: event.id,
+                        date: event.date, // Keep original date for each instance
+                        xPosition: newXPosition
+                    };
+                } else if (event.id === editingEvent.id) {
+                    let newXPosition = event.xPosition;
+                    if (newXPosition + processedEventData.width > 100) {
+                        newXPosition = Math.max(0, 100 - processedEventData.width);
+                    }
+                    const updatedEvent = {
+                        ...processedEventData,
+                        id: event.id,
+                        xPosition: newXPosition
+                    };
+                    // Save only the updated event
+                    saveEvents(updatedEvent);
+                    return updatedEvent;
+                }
+                return event;
+            });
+            setEvents(updatedEvents);
+        } else {
+            // Create new event
+            const isStatus = processedEventData.type === 'status';
+            const baseEvent = {
+                ...processedEventData,
+                width: isStatus ? settings.defaultStatusWidth : settings.defaultEventWidth,
+                xPosition: isStatus ? (100 - settings.defaultStatusWidth) : 0
+            };
+
+            // For daily recurring events, create an event for each selected day
+            let newEvents = [];
+            if (processedEventData.recurring === 'daily') {
+                const recurringDays = JSON.parse(processedEventData.recurringDays);
+                const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                const startDate = new Date(processedEventData.date);
+
+                // Create events for the next 3 months
+                for (let i = 0; i < 90; i++) {
+                    const currentDate = new Date(startDate);
+                    currentDate.setDate(startDate.getDate() + i);
+                    const dayName = daysOfWeek[currentDate.getDay()];
+
+                    if (recurringDays[dayName]) {
+                        newEvents.push({
+                            ...baseEvent,
+                            id: Date.now() + i,
+                            date: currentDate.toISOString().split('T')[0]
+                        });
+                    }
+                }
+            } else {
+                newEvents = [{
+                    ...baseEvent,
+                    id: Date.now(),
+                    recurring: 'none',
+                    recurringDays: '{}',
+                    recurringEventId: null
+                }];
+            }
+
+            // Save only the new events
+            saveEvents(newEvents);
+            setEvents([...events, ...newEvents]);
+        }
+        setIsModalOpen(false);
+        setEditingEvent(null);
     };
 
     return (
