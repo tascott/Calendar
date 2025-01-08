@@ -6,6 +6,7 @@ function StatusOverlay({ isActive, event }) {
     const [text, setText] = useState('');
     const [isBlinking, setIsBlinking] = useState(true);
     const [showPomodoro, setShowPomodoro] = useState(false);
+    const [isClosed, setIsClosed] = useState(false);
     const fullText = event?.overlayText || 'Focus.';
     const typingIntervalRef = useRef(null);
 
@@ -17,7 +18,8 @@ function StatusOverlay({ isActive, event }) {
         // Only show overlay if event is active, is a focus event
         const shouldShowOverlay = isActive &&
             event?.type === 'focus' &&
-            event?.date === new Date().toISOString().split('T')[0];
+            event?.date === new Date().toISOString().split('T')[0] &&
+            !isClosed;
 
         if (shouldShowOverlay) {
             // Start fade in
@@ -60,9 +62,9 @@ function StatusOverlay({ isActive, event }) {
                 clearInterval(typingIntervalRef.current);
             }
         }
-    }, [isActive, event]);
+    }, [isActive, event, isClosed]);
 
-    if (!isActive || event?.type !== 'focus') return null;
+    if (!isActive || event?.type !== 'focus' || isClosed) return null;
 
     return (
         <>
@@ -79,12 +81,18 @@ function StatusOverlay({ isActive, event }) {
                             <span className="inline-block w-[3px] sm:w-[4px] h-[40px] sm:h-[60px] md:h-[70px] bg-white ml-2 animate-blink"></span>
                         )}
                     </div>
-                    <div className="mt-8 pointer-events-auto">
+                    <div className="mt-8 pointer-events-auto flex justify-center items-center space-x-4">
                         <button
                             onClick={() => setShowPomodoro(true)}
                             className="px-6 py-3 text-lg font-medium text-white border-2 border-white rounded hover:bg-white hover:text-black transition-colors duration-200"
                         >
                             Pomodoro
+                        </button>
+                        <button
+                            onClick={() => setIsClosed(true)}
+                            className="px-6 py-3 text-lg font-medium text-white border-2 border-white rounded hover:bg-white hover:text-black transition-colors duration-200"
+                        >
+                            Close
                         </button>
                     </div>
                 </div>
