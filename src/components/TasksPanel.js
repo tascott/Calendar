@@ -46,10 +46,14 @@ function TasksPanel({ tasks = [], onTaskClick, onTaskDelete, isOpen, onToggle })
                                 {tasks.map(task => (
                                     <div
                                         key={task.id}
-                                        className="bg-white border-2 border-[#2C2C2C] p-4 space-y-2 rounded"
+                                        className={`bg-white border-2 border-[#2C2C2C] p-4 space-y-2 rounded ${
+                                            task.completed ? 'opacity-50' : ''
+                                        }`}
                                     >
                                         <div className="flex justify-between items-start">
-                                            <h3 className="text-lg font-medium text-[#2C2C2C]">
+                                            <h3 className={`text-lg font-medium text-[#2C2C2C] ${
+                                                task.completed ? 'line-through' : ''
+                                            }`}>
                                                 {task.title}
                                             </h3>
                                             <span className={`text-sm px-2 py-1 rounded ${

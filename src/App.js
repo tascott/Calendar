@@ -618,7 +618,6 @@ function App() {
 
     const handleTaskUpdate = async (updatedTask) => {
         try {
-            console.log('[Tasks] Updating task:', updatedTask);
 
             // Only do optimistic update for non-deletion updates
             if (!updatedTask.deleted) {
@@ -645,7 +644,6 @@ function App() {
                 title: updatedTask.title || existingTask.title // Ensure title is preserved
             };
 
-            console.log('[Tasks] Sending to server:', taskToUpdate);
 
             const response = await fetch(`${API_URL}/tasks`, {
                 method: 'POST',
@@ -656,12 +654,15 @@ function App() {
                 body: JSON.stringify(taskToUpdate)
             });
 
+            const responseText = await response.text();
+            console.log('[Tasks] Raw server response:', responseText);
+
             if (!response.ok) {
                 throw new Error(`Server returned ${response.status}: ${await response.text()}`);
             }
 
-            console.log('[Tasks] Update successful:', data);
             const data = JSON.parse(responseText);
+            console.log('[Tasks] Update successful, parsed response:', data);
 
             if (updatedTask.deleted) {
                 // If task was deleted, filter it out from the local state

@@ -13,9 +13,9 @@ function TaskForm({ onSubmit, onCancel, initialData }) {
             title: e.target.title.value,
             priority: e.target.priority.value,
             nudge: enableNudge ? parseInt(e.target.nudge.value, 10) : null,
-            complete: initialData?.complete || false,
+            completed: e.target.completed.checked,
             xposition: parseInt(e.target.xposition.value, 10),
-            estimated_time: parseInt(e.target.estimated_time.value, 10) || 10
+            estimated_time: parseInt(e.target.estimated_time.value, 10) || 5
         };
         onSubmit(formData);
     };
@@ -78,9 +78,21 @@ function TaskForm({ onSubmit, onCancel, initialData }) {
                     type="number"
                     name="estimated_time"
                     min="1"
-                    defaultValue={initialData?.estimated_time || 10}
+                    defaultValue={initialData?.estimated_time || 5}
                     className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
                 />
+            </div>
+            <div className="flex items-center space-x-2">
+                <input
+                    type="checkbox"
+                    id="completed"
+                    name="completed"
+                    defaultChecked={initialData?.completed || false}
+                    className="h-4 w-4 border-[#2C2C2C] text-[#2C2C2C] focus:ring-[#2C2C2C]"
+                />
+                <label htmlFor="completed" className="text-sm font-medium text-[#2C2C2C]">
+                    Completed
+                </label>
             </div>
             <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-1">

@@ -60,7 +60,8 @@ async function setupDb() {
                 nudge TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 xposition REAL DEFAULT 0,
-                estimated_time INTEGER DEFAULT 10
+                estimated_time INTEGER DEFAULT 5,
+                completed BOOLEAN DEFAULT false
             );
 
             CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
@@ -150,11 +151,19 @@ async function setupDb() {
                     FROM information_schema.columns
                     WHERE table_name='tasks' AND column_name='estimated_time'
                 ) THEN
-                    ALTER TABLE tasks ADD COLUMN estimated_time INTEGER DEFAULT 10;
+                    ALTER TABLE tasks ADD COLUMN estimated_time INTEGER DEFAULT 5;
                 ELSE
                     -- Update the column type and default if it exists
-                    ALTER TABLE tasks ALTER COLUMN estimated_time SET DEFAULT 10;
+                    ALTER TABLE tasks ALTER COLUMN estimated_time SET DEFAULT 5;
                     ALTER TABLE tasks ALTER COLUMN estimated_time TYPE INTEGER USING estimated_time::INTEGER;
+                END IF;
+
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name='tasks' AND column_name='completed'
+                ) THEN
+                    ALTER TABLE tasks ADD COLUMN completed BOOLEAN DEFAULT false;
                 END IF;
             END $$;
         `);
@@ -320,7 +329,7 @@ async function saveTask(userId, task) {
     }
 
     console.log('[DB] Saving task with data:', task);
-    const { id, title, date, time, priority, nudge, xposition, estimated_time } = task;
+    const { id, title, date, time, priority, nudge, xposition, estimated_time, completed } = task;
 
     // Validate required fields
     if (!id || !title || !date || !time) {
@@ -331,8 +340,8 @@ async function saveTask(userId, task) {
     try {
         console.log('[DB] Executing upsert query...');
         const result = await db.query(
-            `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge, xposition, estimated_time)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge, xposition, estimated_time, completed)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
              ON CONFLICT (id) DO UPDATE SET
              title = EXCLUDED.title,
              date = EXCLUDED.date,
@@ -340,9 +349,10 @@ async function saveTask(userId, task) {
              priority = EXCLUDED.priority,
              nudge = EXCLUDED.nudge,
              xposition = EXCLUDED.xposition,
-             estimated_time = EXCLUDED.estimated_time
+             estimated_time = EXCLUDED.estimated_time,
+             completed = EXCLUDED.completed
              RETURNING *`,
-            [id, userId, title, date, time, priority, nudge, xposition || 0, estimated_time === undefined ? 10 : estimated_time]
+            [id, userId, title, date, time, priority, nudge, xposition || 0, estimated_time === undefined ? 5 : estimated_time, completed === undefined ? false : completed]
         );
 
         if (result.rows.length === 0) {
