@@ -7,6 +7,10 @@ function StatusOverlay({ isActive, event }) {
     const fullText = event?.overlayText || 'Focus.';
     const typingIntervalRef = useRef(null);
 
+    const handlePomodoroClick = () => {
+        console.log('Pomodoro clicked from overlay');
+    };
+
     useEffect(() => {
         // Only show overlay if event is active, is a focus event
         const shouldShowOverlay = isActive &&
@@ -60,7 +64,7 @@ function StatusOverlay({ isActive, event }) {
 
     return (
         <div
-            className="fixed inset-0 bg-black pointer-events-none z-40 flex items-center justify-center transition-opacity duration-1000"
+            className="fixed inset-0 bg-black pointer-events-none z-40 flex flex-col items-center justify-center transition-opacity duration-1000"
             style={{ opacity: `${opacity * 0.9}%` }}
         >
             <div className="relative text-center w-full px-4">
@@ -70,6 +74,14 @@ function StatusOverlay({ isActive, event }) {
                     {isBlinking && (
                         <span className="inline-block w-[3px] sm:w-[4px] h-[40px] sm:h-[60px] md:h-[70px] bg-white ml-2 animate-blink"></span>
                     )}
+                </div>
+                <div className="mt-8 pointer-events-auto">
+                    <button
+                        onClick={handlePomodoroClick}
+                        className="px-6 py-3 text-lg font-medium text-white border-2 border-white rounded hover:bg-white hover:text-black transition-colors duration-200"
+                    >
+                        Pomodoro
+                    </button>
                 </div>
             </div>
 
