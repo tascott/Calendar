@@ -545,16 +545,11 @@ function DayView({ onDoubleClick, onEventUpdate, events = [], settings, currentD
                                 }}
                                 onClick={() => handleTaskClick(task)}
                             >
-                                <div className="flex items-center">
-                                    <Task
-                                        task={task}
-                                        onClick={() => handleTaskClick(task)}
-                                        onPositionChange={(updatedTask) => onTaskUpdate(updatedTask)}
-                                    />
-                                    <span className="ml-2 text-xs text-gray-600 truncate max-w-[100px]">
-                                        {task.title}
-                                    </span>
-                                </div>
+                                <Task
+                                    task={task}
+                                    onClick={() => handleTaskClick(task)}
+                                    onPositionChange={(updatedTask) => onTaskUpdate(updatedTask)}
+                                />
                             </div>
                         );
                     })}
