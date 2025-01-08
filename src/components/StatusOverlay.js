@@ -67,9 +67,10 @@ function StatusOverlay({ isActive, event }) {
     return (
         <>
             <div
-                className="fixed inset-0 bg-black pointer-events-none z-40 flex flex-col items-center justify-center transition-opacity duration-1000"
+                className="fixed inset-0 bg-black pointer-events-none z-40 transition-opacity duration-1000"
                 style={{ opacity: `${opacity * 0.9}%` }}
-            >
+            />
+            <div className="fixed inset-0 pointer-events-none z-[9998] flex flex-col items-center justify-center">
                 <div className="relative text-center w-full px-4">
                     {/* Text with typing animation */}
                     <div className="text-white text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-wider">
@@ -87,21 +88,23 @@ function StatusOverlay({ isActive, event }) {
                         </button>
                     </div>
                 </div>
-
-                <style>{`
-                    @keyframes blink {
-                        0%, 100% { opacity: 1; }
-                        50% { opacity: 0; }
-                    }
-                    .animate-blink {
-                        animation: blink 1s step-end 5;
-                    }
-                `}</style>
             </div>
 
             {showPomodoro && (
-                <PomodoroDialog onClose={() => setShowPomodoro(false)} />
+                <div className="fixed inset-0 z-[9999] pointer-events-auto">
+                    <PomodoroDialog onClose={() => setShowPomodoro(false)} />
+                </div>
             )}
+
+            <style>{`
+                @keyframes blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0; }
+                }
+                .animate-blink {
+                    animation: blink 1s step-end 5;
+                }
+            `}</style>
         </>
     );
 }
