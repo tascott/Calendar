@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function PomodoroDialog({ onClose }) {
+function PomodoroDialog({ onClose, focusText }) {
     const [minutes, setMinutes] = useState(25);
     const [isRunning, setIsRunning] = useState(false);
     const [timeLeft, setTimeLeft] = useState(null);
@@ -151,6 +151,11 @@ function PomodoroDialog({ onClose }) {
                     </div>
                 ) : (
                     <div className="text-center space-y-6">
+                        {focusText && (
+                            <div className="text-[#2C2C2C] text-2xl sm:text-3xl md:text-4xl font-bold tracking-wider mb-4">
+                                {focusText}
+                            </div>
+                        )}
                         <div className="relative w-48 h-48 mx-auto">
                             <svg className="progress-ring" width="100%" height="100%">
                                 <circle

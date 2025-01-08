@@ -92,7 +92,10 @@ function StatusOverlay({ isActive, event }) {
 
             {showPomodoro && (
                 <div className="fixed inset-0 z-[9999] pointer-events-auto">
-                    <PomodoroDialog onClose={() => setShowPomodoro(false)} />
+                    <PomodoroDialog
+                        onClose={() => setShowPomodoro(false)}
+                        focusText={text}
+                    />
                 </div>
             )}
 
