@@ -627,10 +627,23 @@ function App() {
                 ));
             }
 
-            // For deletion, ensure we preserve all necessary fields
-            const taskToUpdate = updatedTask.deleted
-                ? { ...tasks.find(t => t.id === updatedTask.id), ...updatedTask }
-                : updatedTask;
+            // Get the existing task to ensure we have all fields
+            const existingTask = tasks.find(t => t.id === updatedTask.id);
+            if (!existingTask) {
+                throw new Error('Task not found');
+            }
+
+            // Merge existing task with updates, ensuring all required fields are present
+            const taskToUpdate = {
+                ...existingTask,
+                ...updatedTask,
+                time: updatedTask.time || existingTask.time,
+                date: updatedTask.date || existingTask.date,
+                priority: updatedTask.priority || existingTask.priority,
+                xposition: updatedTask.xposition !== undefined ? updatedTask.xposition : existingTask.xposition,
+                estimated_time: updatedTask.estimated_time !== undefined ? updatedTask.estimated_time : existingTask.estimated_time,
+                title: updatedTask.title || existingTask.title // Ensure title is preserved
+            };
 
             console.log('[Tasks] Sending to server:', taskToUpdate);
 
@@ -647,8 +660,8 @@ function App() {
                 throw new Error(`Server returned ${response.status}: ${await response.text()}`);
             }
 
-            const data = await response.json();
             console.log('[Tasks] Update successful:', data);
+            const data = JSON.parse(responseText);
 
             if (updatedTask.deleted) {
                 // If task was deleted, filter it out from the local state

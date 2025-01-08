@@ -146,19 +146,23 @@ app.post('/api/tasks', authenticateToken, async (req, res) => {
         console.log('[Tasks API] Processing request:', { userId: req.user.id, task: req.body });
 
         const taskId = await saveTask(req.user.id, req.body);
+        // Validate required fields
+        const { id, title, date, time } = req.body;
+        if (!id || !title || !date || !time) {
+            console.error('[Tasks API] Missing required fields:', { id, title, date, time });
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        const result = await saveTask(req.user.id, req.body);
 
         if (req.body.deleted) {
             console.log('[Tasks API] Task deleted:', taskId);
-            res.json({ success: true, deleted: taskId });
+            res.json({ success: true, deleted: result });
             return;
         }
 
-        // For non-delete operations, return the updated task
-        const result = await db.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
-        if (result.rows.length === 0) {
-            throw new Error('Task not found after save');
-        }
-        res.json(result.rows[0]);
+        // For non-delete operations, return the saved task
+        res.json(result);
     } catch (error) {
         console.error('[Tasks API] Error:', error);
         res.status(500).json({ error: error.message || 'Failed to process task' });

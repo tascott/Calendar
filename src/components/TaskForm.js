@@ -14,7 +14,8 @@ function TaskForm({ onSubmit, onCancel, initialData }) {
             priority: e.target.priority.value,
             nudge: enableNudge ? parseInt(e.target.nudge.value, 10) : null,
             complete: initialData?.complete || false,
-            xposition: parseInt(e.target.xposition.value, 10)
+            xposition: parseInt(e.target.xposition.value, 10),
+            estimated_time: parseInt(e.target.estimated_time.value, 10) || 10
         };
         onSubmit(formData);
     };
@@ -68,6 +69,18 @@ function TaskForm({ onSubmit, onCancel, initialData }) {
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                 </select>
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-[#2C2C2C] mb-1">
+                    Estimated Time (minutes)
+                </label>
+                <input
+                    type="number"
+                    name="estimated_time"
+                    min="1"
+                    defaultValue={initialData?.estimated_time || 10}
+                    className="w-full px-3 py-2 border border-[#2C2C2C] focus:outline-none focus:ring-1 focus:ring-[#2C2C2C] bg-[#F6F5F1]"
+                />
             </div>
             <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-1">

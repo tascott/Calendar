@@ -66,6 +66,9 @@ function TasksPanel({ tasks = [], onTaskClick, onTaskDelete, isOpen, onToggle })
                                             {task.nudge && (
                                                 <div>Nudge: {task.nudge}</div>
                                             )}
+                                            {task.estimated_time !== undefined && (
+                                                <div>Estimated: {task.estimated_time} minutes</div>
+                                            )}
                                         </div>
                                         <div className="flex justify-end space-x-2 pt-2">
                                             <button

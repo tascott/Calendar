@@ -59,7 +59,8 @@ async function setupDb() {
                 priority TEXT DEFAULT 'medium',
                 nudge TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                xposition REAL DEFAULT 0
+                xposition REAL DEFAULT 0,
+                estimated_time INTEGER DEFAULT 10
             );
 
             CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
@@ -136,6 +137,24 @@ async function setupDb() {
                     WHERE table_name='settings' AND column_name='taskavoidfocus'
                 ) THEN
                     ALTER TABLE settings ADD COLUMN taskavoidfocus BOOLEAN DEFAULT false;
+                END IF;
+            END $$;
+        `);
+
+        // Add estimated_time column to tasks table if it doesn't exist
+        await db.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM information_schema.columns
+                    WHERE table_name='tasks' AND column_name='estimated_time'
+                ) THEN
+                    ALTER TABLE tasks ADD COLUMN estimated_time INTEGER DEFAULT 10;
+                ELSE
+                    -- Update the column type and default if it exists
+                    ALTER TABLE tasks ALTER COLUMN estimated_time SET DEFAULT 10;
+                    ALTER TABLE tasks ALTER COLUMN estimated_time TYPE INTEGER USING estimated_time::INTEGER;
                 END IF;
             END $$;
         `);
@@ -280,41 +299,72 @@ async function getSettings(userId) {
 // Function to save a task
 async function saveTask(userId, task) {
     const db = await getDb();
+    console.log('[DB] Starting saveTask with data:', { userId, task });
 
     // Handle deletion first
     if (task.deleted === true) {
-        console.log('[DELETE] Processing delete for task:', task.id, 'User ID:', userId);
+        console.log('[DB] Processing delete for task:', task.id, 'User ID:', userId);
         try {
             const result = await db.query('DELETE FROM tasks WHERE id = $1 AND user_id = $2 RETURNING id', [task.id, userId]);
-            console.log('[DELETE] Task deletion result:', result.rows);
+            console.log('[DB] Task deletion result:', result.rows);
             if (result.rowCount === 0) {
-                console.log('[DELETE] No task found to delete with id:', task.id, 'and user_id:', userId);
+                console.log('[DB] No task found to delete with id:', task.id, 'and user_id:', userId);
                 throw new Error('Task not found');
             }
-            console.log('[DELETE] Task successfully deleted:', task.id, 'Rows affected:', result.rowCount);
+            console.log('[DB] Task successfully deleted:', task.id, 'Rows affected:', result.rowCount);
             return task.id;
         } catch (error) {
-            console.error('[DELETE] Error deleting task:', error);
+            console.error('[DB] Error deleting task:', error);
             throw error;
         }
     }
 
-    const { id, title, date, time, priority, nudge, xposition } = task;
-    const result = await db.query(
-        `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge, xposition)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (id) DO UPDATE SET
-         title = $3, date = $4, time = $5, priority = $6, nudge = $7, xposition = $8
-         RETURNING id`,
-        [id, userId, title, date, time, priority, nudge, xposition || 0]
-    );
-    return result.rows[0].id;
+    console.log('[DB] Saving task with data:', task);
+    const { id, title, date, time, priority, nudge, xposition, estimated_time } = task;
+
+    // Validate required fields
+    if (!id || !title || !date || !time) {
+        console.error('[DB] Missing required fields:', { id, title, date, time });
+        throw new Error('Missing required fields');
+    }
+
+    try {
+        console.log('[DB] Executing upsert query...');
+        const result = await db.query(
+            `INSERT INTO tasks (id, user_id, title, date, time, priority, nudge, xposition, estimated_time)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             ON CONFLICT (id) DO UPDATE SET
+             title = EXCLUDED.title,
+             date = EXCLUDED.date,
+             time = EXCLUDED.time,
+             priority = EXCLUDED.priority,
+             nudge = EXCLUDED.nudge,
+             xposition = EXCLUDED.xposition,
+             estimated_time = EXCLUDED.estimated_time
+             RETURNING *`,
+            [id, userId, title, date, time, priority, nudge, xposition || 0, estimated_time === undefined ? 10 : estimated_time]
+        );
+
+        if (result.rows.length === 0) {
+            console.error('[DB] No task returned after save');
+            throw new Error('Task not found after save');
+        }
+
+        console.log('[DB] Query result:', result.rows[0]);
+        return result.rows[0];
+    } catch (error) {
+        console.error('[DB] Error executing query:', error);
+        console.error('[DB] Error stack:', error.stack);
+        throw error;
+    }
 }
 
 // Function to get user tasks
 async function getUserTasks(userId) {
     const db = await getDb();
+    console.log('[TASKS] Fetching tasks for user:', userId);
     const result = await db.query('SELECT * FROM tasks WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    console.log('[TASKS] Task data:', result.rows);
     return result.rows;
 }
 
