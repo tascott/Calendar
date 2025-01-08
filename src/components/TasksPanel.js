@@ -1,14 +1,38 @@
 import React from 'react';
-import { format } from 'date-fns';
+import { format, isPast, parseISO, parse } from 'date-fns';
 import { FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 function TasksPanel({ tasks = [], onTaskClick, onTaskDelete, isOpen, onToggle }) {
+    const isTaskOverdue = (task) => {
+        if (task.completed) return false;
+        const taskDate = parseISO(task.date);
+        const taskTime = parse(task.time, 'HH:mm', new Date());
+        const taskDateTime = new Date(
+            taskDate.getFullYear(),
+            taskDate.getMonth(),
+            taskDate.getDate(),
+            taskTime.getHours(),
+            taskTime.getMinutes()
+        );
+        return isPast(taskDateTime);
+    };
+
+    const hasOverdueTasks = tasks.some(isTaskOverdue);
+
     return (
         <>
+            <style>
+                {`
+                    @keyframes pulse {
+                        0%, 100% { opacity: 1; }
+                        50% { opacity: 0.5; }
+                    }
+                `}
+            </style>
             {/* Tab - positioned independently */}
             <button
                 onClick={onToggle}
-                className="fixed right-0 top-[40%] bg-[#2C2C2C] text-white px-2 py-4 h-32 flex items-center border-2 border-r-0 border-[#2C2C2C] cursor-pointer z-50 rounded-r-md"
+                className={`fixed right-0 top-[40%] ${hasOverdueTasks ? 'bg-red-500' : 'bg-[#2C2C2C]'} text-white px-2 py-4 h-32 flex items-center border-2 border-r-0 ${hasOverdueTasks ? 'border-red-500' : 'border-[#2C2C2C]'} cursor-pointer z-50 rounded-r-md`}
                 style={{
                     writingMode: 'vertical-lr',
                     transform: 'rotate(180deg)',
@@ -46,16 +70,25 @@ function TasksPanel({ tasks = [], onTaskClick, onTaskDelete, isOpen, onToggle })
                                 {tasks.map(task => (
                                     <div
                                         key={task.id}
-                                        className={`bg-white border-2 border-[#2C2C2C] p-4 space-y-2 rounded ${
-                                            task.completed ? 'opacity-50' : ''
+                                        className={`bg-white border-2 p-4 space-y-2 rounded ${
+                                            task.completed ? 'opacity-50 border-[#2C2C2C]' :
+                                            isTaskOverdue(task) ? 'border-red-500 bg-red-50' : 'border-[#2C2C2C]'
                                         }`}
                                     >
                                         <div className="flex justify-between items-start">
-                                            <h3 className={`text-lg font-medium text-[#2C2C2C] ${
-                                                task.completed ? 'line-through' : ''
-                                            }`}>
-                                                {task.title}
-                                            </h3>
+                                            <div className="flex items-center gap-2">
+                                                <h3 className={`text-lg font-medium ${
+                                                    task.completed ? 'line-through text-[#2C2C2C]' :
+                                                    isTaskOverdue(task) ? 'text-red-700' : 'text-[#2C2C2C]'
+                                                }`}>
+                                                    {task.title}
+                                                </h3>
+                                                {isTaskOverdue(task) && !task.completed && (
+                                                    <span className="text-xs font-semibold bg-red-500 text-white px-2 py-0.5 rounded animate-[pulse_2s_ease-in-out_infinite]">
+                                                        OVERDUE
+                                                    </span>
+                                                )}
+                                            </div>
                                             <span className={`text-sm px-2 py-1 rounded ${
                                                 task.priority === 'high' ? 'bg-red-100 text-red-800' :
                                                 task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
