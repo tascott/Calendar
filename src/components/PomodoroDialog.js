@@ -6,6 +6,8 @@ function PomodoroDialog({ onClose, focusText }) {
     const [timeLeft, setTimeLeft] = useState(null);
     const [isComplete, setIsComplete] = useState(false);
     const [opacity, setOpacity] = useState(0);
+    const [breakMinutes, setBreakMinutes] = useState(5);
+    const [isBreakTime, setIsBreakTime] = useState(false);
 
     // Handle opacity animation when timer starts/stops
     useEffect(() => {
@@ -52,6 +54,19 @@ function PomodoroDialog({ onClose, focusText }) {
         if (!isRunning || !timeLeft) return 0;
         const totalMs = minutes * 60 * 1000;
         return ((totalMs - timeLeft) / totalMs) * 100;
+    };
+
+    const handleBreakStart = () => {
+        setTimeLeft(breakMinutes * 60 * 1000);
+        setIsBreakTime(true);
+        setIsRunning(true);
+        setIsComplete(false);
+    };
+
+    const handleStop = () => {
+        setIsRunning(false);
+        setIsBreakTime(false);
+        setTimeLeft(null);
     };
 
     return (
@@ -148,28 +163,48 @@ function PomodoroDialog({ onClose, focusText }) {
                                 <h2 className="text-3xl font-bold text-green-500 mb-4">Time's Up!</h2>
                                 <p className="text-xl text-[#2C2C2C] mb-8">Great work! Take a break.</p>
                             </div>
-                            <div className="flex justify-center space-x-3">
-                                <button
-                                    onClick={() => {
-                                        setIsComplete(false);
-                                        setTimeLeft(minutes * 60 * 1000);
-                                        setIsRunning(true);
-                                    }}
-                                    className="px-6 py-2 text-base font-medium text-white bg-green-500 border-2 border-green-500 rounded-lg hover:bg-green-600 transition-colors"
-                                >
-                                    Start Again
-                                </button>
-                                <button
-                                    onClick={onClose}
-                                    className="px-6 py-2 text-base font-medium text-[#2C2C2C] border-2 border-[#2C2C2C] rounded-lg hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors"
-                                >
-                                    Close
-                                </button>
+
+                            {/* Break timer selection */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-medium text-[#2C2C2C]">Time break</h3>
+                                <div className="flex justify-center space-x-3">
+                                    {[2, 5, 10].map((mins) => (
+                                        <button
+                                            key={mins}
+                                            onClick={() => setBreakMinutes(mins)}
+                                            className={`px-4 py-2 text-base font-medium rounded-lg transition-colors ${
+                                                breakMinutes === mins
+                                                    ? 'bg-[#2C2C2C] text-[#F6F5F1] border-2 border-[#2C2C2C]'
+                                                    : 'text-[#2C2C2C] border-2 border-[#2C2C2C] hover:bg-[#2C2C2C] hover:text-[#F6F5F1]'
+                                            }`}
+                                        >
+                                            {mins}m
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex justify-center space-x-3 mt-4">
+                                    <button
+                                        onClick={handleBreakStart}
+                                        className="px-6 py-2 text-base font-medium text-[#F6F5F1] bg-green-500 border-2 border-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                                    >
+                                        Start Break
+                                    </button>
+                                    <button
+                                        onClick={onClose}
+                                        className="px-6 py-2 text-base font-medium text-[#2C2C2C] border-2 border-[#2C2C2C] rounded-lg hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors"
+                                    >
+                                        Close
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     ) : (
                         <div className="text-center space-y-6">
-                            {focusText && (
+                            {isBreakTime ? (
+                                <div className="text-[#2C2C2C] text-2xl sm:text-3xl md:text-4xl font-bold tracking-wider mb-4">
+                                    Break Time
+                                </div>
+                            ) : focusText && (
                                 <div className="text-[#2C2C2C] text-2xl sm:text-3xl md:text-4xl font-bold tracking-wider mb-4">
                                     {focusText}
                                 </div>
@@ -186,7 +221,7 @@ function PomodoroDialog({ onClose, focusText }) {
                                         cy="96"
                                     />
                                     <circle
-                                        className="text-[#2C2C2C] transition-all duration-500"
+                                        className={`transition-all duration-500 ${isBreakTime ? 'text-green-500' : 'text-[#2C2C2C]'}`}
                                         strokeWidth="8"
                                         stroke="currentColor"
                                         fill="transparent"
@@ -204,7 +239,7 @@ function PomodoroDialog({ onClose, focusText }) {
                                 </div>
                             </div>
                             <button
-                                onClick={() => setIsRunning(false)}
+                                onClick={handleStop}
                                 className="px-6 py-2 text-base font-medium text-[#2C2C2C] border-2 border-[#2C2C2C] rounded-lg hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors"
                             >
                                 Stop
