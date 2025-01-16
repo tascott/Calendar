@@ -28,23 +28,23 @@ function CalendarNavigation({ viewType, currentDate, onNavigate }) {
     };
 
     return (
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between py-4 border-b border-gray-200">
             <div className="flex items-center space-x-4">
                 <button
                     onClick={() => navigate(-1)}
-                    className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                    className="px-3 py-1 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors border border-gray-300"
                 >
                     Previous
                 </button>
                 <button
                     onClick={() => navigate(1)}
-                    className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                    className="px-3 py-1 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors border border-gray-300"
                 >
                     Next
                 </button>
                 <button
                     onClick={() => onNavigate(new Date())}
-                    className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md transition-colors"
+                    className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-md transition-colors border border-blue-300"
                 >
                     Today
                 </button>

@@ -997,55 +997,41 @@ function App() {
                 >
                     {/* Header */}
                     <header className="flex-none w-full bg-[#F6F5F1] border-b border-[#D1C7]">
-                        <div className="max-w-[1600px] w-full mx-auto px-8 py-6">
+                        <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-4 sm:py-6">
                             <div className="flex flex-col space-y-4">
                                 {/* First row: Calendar title and buttons */}
-                                <div className="flex items-center justify-between mb-4">
-                                    <h1 className="text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-xs text-gray-500 font-mono">{VERSION}</span>
-                                        <div className="flex space-x-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <h1 className="text-2xl sm:text-3xl font-normal text-[#2C2C2C] tracking-wide">Calendar</h1>
+                                    <div className="flex items-center gap-2 sm:gap-4">
+                                        <span className="hidden sm:hidden md:inline-block text-xs text-gray-500 font-mono">{VERSION}</span>
+                                        <div className="flex flex-wrap gap-2 sm:gap-4">
                                             <button
-                                                onClick={() => {
-                                                    setEditingEvent(null);
-                                                    setIsModalOpen(true);
-                                                }}
-                                                className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                onClick={() => setActivePanel('notes')}
+                                                className="px-3 sm:px-4 py-2 text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                                             >
-                                                New Event
+                                                Notes
                                             </button>
                                             <button
-                                                onClick={() => setIsTaskModalOpen(true)}
-                                                className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                onClick={() => setActivePanel('tasks')}
+                                                className="px-3 sm:px-4 py-2 text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                                             >
-                                                New Task
+                                                Tasks
                                             </button>
                                             <button
                                                 onClick={() => setIsSettingsOpen(true)}
-                                                className="px-6 py-2 text-[#2C2C2C] text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                className="px-3 sm:px-4 py-2 text-sm font-medium border-2 border-[#2C2C2C] rounded hover:bg-[#2C2C2C] hover:text-[#F6F5F1] transition-colors duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                                             >
                                                 Settings
                                             </button>
                                             <button
                                                 onClick={handleLogout}
-                                                className="px-6 py-2 text-red-600 text-sm font-medium border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md"
+                                                className="px-3 sm:px-4 py-2 text-sm font-medium text-red-600 border-2 border-red-600 rounded hover:bg-red-50 transition-colors duration-200 shadow-sm hover:shadow-md whitespace-nowrap"
                                             >
                                                 Logout
                                             </button>
                                             <button
-                                                className="fullscreen-button"
                                                 onClick={toggleFullscreen}
-                                                style={{
-                                                    padding: '8px',
-                                                    backgroundColor: '#f0f0f0',
-                                                    border: '1px solid #ccc',
-                                                    borderRadius: '4px',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    marginLeft: '10px'
-                                                }}
+                                                className="hidden sm:flex p-2 sm:p-3 bg-[#f0f0f0] border border-[#ccc] rounded items-center justify-center hover:bg-[#e0e0e0] transition-colors duration-200"
                                                 title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
                                             >
                                                 {isFullscreen ?
@@ -1057,7 +1043,7 @@ function App() {
                                     </div>
                                 </div>
 
-                                {/* Third row: Note input and view controls */}
+                                {/* View controls */}
                                 <div className="flex justify-between items-center">
                                     <ViewSelector
                                         currentView={currentView}
@@ -1072,13 +1058,15 @@ function App() {
 
                     {/* Main Content */}
                     <main className="flex-1 overflow-hidden pb-8">
-                        {renderView()}
+                        <div className="h-full max-w-[1600px] mx-auto px-2 sm:px-8">
+                            {renderView()}
+                        </div>
                     </main>
 
-                    {/* Modals with vintage styling */}
+                    {/* Modals with improved mobile styling */}
                     {isModalOpen && (
-                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-2 sm:p-4 z-50">
+                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-4 sm:p-8 w-full max-w-md vintage-shadow max-h-[90vh] overflow-y-auto">
                                 <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
                                     {editingEvent ? 'Edit Event' : 'New Event'}
                                 </h2>
@@ -1096,8 +1084,8 @@ function App() {
 
                     {/* Settings Modal */}
                     {isSettingsOpen && (
-                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-2 sm:p-4 z-50">
+                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-4 sm:p-8 w-full max-w-md vintage-shadow max-h-[90vh] overflow-y-auto">
                                 <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
                                     Settings
                                 </h2>
@@ -1110,10 +1098,10 @@ function App() {
                         </div>
                     )}
 
-                    {/* Login/Register Modal with improved validation */}
+                    {/* Login/Register Modal */}
                     {isLoginModalOpen && (
-                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 z-50">
-                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-8 max-w-md w-full vintage-shadow">
+                        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-2 sm:p-4 z-50">
+                            <div className="bg-[#F6F5F1] rounded-none border border-[#2C2C2C] p-4 sm:p-8 w-full max-w-md vintage-shadow">
                                 <h2 className="text-xl font-normal text-[#2C2C2C] mb-6">
                                     {isRegistering ? 'Register' : 'Login'}
                                 </h2>

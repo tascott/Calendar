@@ -2,20 +2,38 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 /* Reset default browser styles */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Set global font and background styles */
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+}
+
 body {
     font-family: 'Georgia', serif;
     font-size: 16px;
     background-color: #F6F5F1;  /* Warm off-white */
     color: #2C2C2C;  /* Soft black */
     line-height: 1.5;
+    overflow-x: hidden;
+    touch-action: manipulation;
+}
+
+/* Improve touch targets on mobile */
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+    min-height: 44px;
+    min-width: 44px;
 }
 
 /* Add some vintage-inspired utility classes */
@@ -34,6 +52,7 @@ body {
     color: #2C2C2C;
     padding: 0.5rem 1rem;
     transition: all 0.2s ease;
+    min-height: 44px;
 }
 
 .btn-vintage:hover {
@@ -54,4 +73,25 @@ body {
     align-items: center;
     min-height: 100vh;
     background-color: #F6F5F1;
+    width: 100%;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+    html {
+        font-size: 14px;
+    }
+
+    .vintage-grid {
+        background-size: 100% 2.5rem;
+    }
+
+    input[type="time"],
+    input[type="date"],
+    input[type="text"],
+    input[type="password"],
+    input[type="email"],
+    select {
+        font-size: 16px !important; /* Prevent zoom on iOS */
+    }
 }
