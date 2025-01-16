@@ -40,7 +40,7 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData, 
         recurringDays: parseRecurringDays(initialData),
         backgroundColor: initialData?.backgroundColor || '#DBEAFE',
         color: initialData?.color || '#1E40AF',
-        width: initialData?.width || 80,
+        width: initialData?.width || (initialData?.type === 'status' ? (settings?.defaultStatusWidth || 20) : (settings?.defaultEventWidth || 80)),
         overlayText: initialData?.overlayText || 'Focus.'
     });
 
@@ -65,11 +65,11 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData, 
                 recurringDays: parseRecurringDays(initialData),
                 backgroundColor: initialData.backgroundColor || '#DBEAFE',
                 color: initialData.color || '#1E40AF',
-                width: initialData.width || 80,
+                width: initialData.width || (initialData.type === 'status' ? (settings?.defaultStatusWidth || 20) : (settings?.defaultEventWidth || 80)),
                 overlayText: initialData?.overlayText || 'Focus.'
             });
         }
-    }, [initialData, initialDate, initialTime]);
+    }, [initialData, initialDate, initialTime, settings]);
 
     // Helper function to add 30 minutes to a time string
     function addHalfHour(timeStr) {
@@ -194,7 +194,7 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData, 
             setFormData(prev => ({
                 ...prev,
                 type: value,
-                width: value === 'status' ? 20 : 80
+                width: value === 'status' ? (settings?.defaultStatusWidth || 20) : (settings?.defaultEventWidth || 80)
             }));
         } else {
             setFormData(prev => ({

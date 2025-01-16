@@ -282,6 +282,7 @@ function App() {
                 starttime: event.startTime,
                 endtime: event.endTime,
                 xposition: event.xPosition,
+                width: event.width,
                 backgroundcolor: event.backgroundColor,
                 overlaytext: event.overlayText,
                 recurringdays: event.recurringDays,
@@ -305,6 +306,7 @@ function App() {
                 startTime: event.starttime,
                 endTime: event.endtime,
                 xPosition: event.xposition,
+                width: event.width,
                 backgroundColor: event.backgroundcolor,
                 overlayText: event.overlaytext,
                 recurringDays: event.recurringdays,
@@ -931,8 +933,8 @@ function App() {
             const isStatus = processedEventData.type === 'status';
             const baseEvent = {
                 ...processedEventData,
-                width: isStatus ? settings.defaultStatusWidth : settings.defaultEventWidth,
-                xPosition: isStatus ? (100 - settings.defaultStatusWidth) : 0
+                width: processedEventData.width || (isStatus ? settings.defaultStatusWidth : settings.defaultEventWidth),
+                xPosition: isStatus ? (100 - (processedEventData.width || settings.defaultStatusWidth)) : 0
             };
 
             // For daily recurring events, create an event for each selected day

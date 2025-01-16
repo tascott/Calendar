@@ -10,6 +10,13 @@ function StatusOverlay({ isActive, event }) {
     const fullText = event?.overlayText || 'Focus.';
     const typingIntervalRef = useRef(null);
 
+    // Reset isClosed when event changes
+    useEffect(() => {
+        if (event?.id) {
+            setIsClosed(false);  // Reset closed state for new events
+        }
+    }, [event?.id]);
+
     const handlePomodoroClick = () => {
         console.log('Pomodoro clicked from overlay');
     };
@@ -62,7 +69,7 @@ function StatusOverlay({ isActive, event }) {
                 clearInterval(typingIntervalRef.current);
             }
         }
-    }, [isActive, event, isClosed]);
+    }, [isActive, event, isClosed, fullText]);
 
     if (!isActive || event?.type !== 'focus' || isClosed) return null;
 
