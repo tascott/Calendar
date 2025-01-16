@@ -47,10 +47,13 @@ axios.interceptors.response.use(
             'Message:', error.response?.data?.error
         );
 
-        if (error.response?.status === 403 && error.response?.data?.error === 'Invalid or expired token') {
-            // Clear token and show login modal
-            localStorage.removeItem('token');
-            window.dispatchEvent(new CustomEvent('tokenExpired'));
+        // Handle token expiration
+        if (error.response?.status === 401 ||
+            (error.response?.status === 403 && error.response?.data?.error === 'Invalid or expired token')) {
+            if (localStorage.getItem('token')) {  // Only handle if we actually have a token
+                localStorage.removeItem('token');
+                window.dispatchEvent(new CustomEvent('tokenExpired'));
+            }
         }
         return Promise.reject(error);
     }
@@ -787,10 +790,20 @@ function App() {
 
     // Add event listener for token expiration
     useEffect(() => {
+        let isHandlingExpiration = false;  // Flag to prevent duplicate handling
+
         const handleTokenExpired = () => {
+            if (isHandlingExpiration) return;  // Prevent duplicate handling
+            isHandlingExpiration = true;
+
             setToken(null);
             setIsLoginModalOpen(true);
             toast.error('Your session has expired. Please log in again.');
+
+            // Reset flag after a short delay
+            setTimeout(() => {
+                isHandlingExpiration = false;
+            }, 1000);
         };
 
         window.addEventListener('tokenExpired', handleTokenExpired);

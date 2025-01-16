@@ -11,10 +11,10 @@ const NotesPanel = ({ isOpen, onToggle }) => {
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        if (localStorage.getItem('token')) {
+        if (isOpen && localStorage.getItem('token')) {
             fetchNotes();
         }
-    }, []);
+    }, [isOpen]);
 
     const fetchNotes = async () => {
         try {
@@ -23,12 +23,23 @@ const NotesPanel = ({ isOpen, onToggle }) => {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
             });
-            if (!response.ok) throw new Error('Failed to fetch notes');
+            if (!response.ok) {
+                if (response.status === 403) {
+                    // Token expired, let the main app handle the refresh
+                    window.dispatchEvent(new CustomEvent('tokenExpired'));
+                    return;  // Return early to prevent error message
+                }
+                throw new Error('Failed to fetch notes');
+            }
             const data = await response.json();
             console.log('Fetched notes:', data);
             setNotes(data);
         } catch (error) {
             console.error('Error fetching notes:', error);
+            // Only set error state if it's not a token expiration
+            if (!error.message.includes('token expired')) {
+                setNotes([]);  // Clear notes on error
+            }
         }
     };
 
