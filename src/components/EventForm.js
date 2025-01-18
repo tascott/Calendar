@@ -303,10 +303,18 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData, 
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <div className="flex justify-between items-center">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Start Time
-                        </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Start Time
+                    </label>
+                    <div className="flex gap-2 items-center">
+                        <input
+                            type="time"
+                            name="startTime"
+                            value={formData.startTime}
+                            onChange={handleChange}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            required
+                        />
                         <button
                             type="button"
                             onClick={() => {
@@ -316,19 +324,11 @@ const EventForm = ({ onSubmit, onCancel, initialTime, initialDate, initialData, 
                                     endTime: settings?.dayEndTime || '23:59'
                                 }));
                             }}
-                            className="text-xs text-blue-600 hover:text-blue-700 mb-1"
+                            className="text-xs text-blue-600 hover:text-blue-700 whitespace-nowrap"
                         >
                             All Day
                         </button>
                     </div>
-                    <input
-                        type="time"
-                        name="startTime"
-                        value={formData.startTime}
-                        onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                    />
                 </div>
 
                 <div>

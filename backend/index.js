@@ -9,7 +9,7 @@ const { setupDb, getAllEvents, replaceAllEvents, createUser, getUser, getSetting
 const path = require('path');
 
 const app = express();
-const port = process.env.PORT || 3001;
+const port = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Middleware

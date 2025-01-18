@@ -3,7 +3,7 @@ import { FaTimes, FaChevronLeft, FaChevronRight, FaSpinner } from 'react-icons/f
 
 const API_URL = process.env.NODE_ENV === 'production'
     ? '/api'  // In production, use relative path
-    : 'http://localhost:3001/api'; // In development, use full URL?
+    : 'http://localhost:3002/api'; // In development, use full URL?
 
 const NotesPanel = ({ isOpen, onToggle }) => {
     const [notes, setNotes] = useState([]);

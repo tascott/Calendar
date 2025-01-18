@@ -15,7 +15,7 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
 
     const fetchTemplates = async () => {
         try {
-            const response = await fetch(`${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'}/templates`, {
+            const response = await fetch(`${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3002/api'}/templates`, {
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -50,8 +50,8 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
             });
 
             const endpoint = editingTemplate
-                ? `${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'}/templates/${editingTemplate.id}`
-                : `${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'}/templates`;
+                ? `${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3002/api'}/templates/${editingTemplate.id}`
+                : `${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3002/api'}/templates`;
 
             const method = editingTemplate ? 'PUT' : 'POST';
 
@@ -109,7 +109,7 @@ function TemplatesModal({ onClose, events, onLoadTemplate, currentDate }) {
         }
 
         try {
-            const response = await fetch(`${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001/api'}/templates/${templateId}`, {
+            const response = await fetch(`${process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3002/api'}/templates/${templateId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${localStorage.getItem('token')}`

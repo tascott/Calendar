@@ -23,7 +23,7 @@ console.log('Current environment:', process.env.NODE_ENV);
 console.log('All env vars:', process.env);
 
 // API URL Configuration
-const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3002';
 const API_URL = `${BASE_URL}/api`;
 
 console.log('Base URL:', BASE_URL);
