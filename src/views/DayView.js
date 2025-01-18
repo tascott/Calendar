@@ -1,7 +1,6 @@
 import React, { useRef, useCallback, useEffect, useState } from 'react';
 import { useDrop } from 'react-dnd';
 import TimeColumn from '../components/TimeColumn';
-import GridOverlay from '../components/GridOverlay';
 import CurrentTimeLine from '../components/CurrentTimeLine';
 import CalendarNavigation from '../components/CalendarNavigation';
 import { Toaster } from 'react-hot-toast';

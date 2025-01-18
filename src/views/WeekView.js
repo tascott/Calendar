@@ -1,8 +1,5 @@
 import React from 'react';
 import { format } from 'date-fns';
-import TimeColumn from '../components/TimeColumn';
-import GridOverlay from '../components/GridOverlay';
-import CurrentTimeLine from '../components/CurrentTimeLine';
 import CalendarNavigation from '../components/CalendarNavigation';
 
 function WeekEvent({ event, settings, onEventClick }) {
