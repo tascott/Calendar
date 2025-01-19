@@ -86,7 +86,7 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                 }
             }, 100);
         }
-    }, []);
+    }, [event.id, isLongPress, isTouched]);
 
     const handleTouchMove = useCallback((e) => {
         // Clear the timeout and last tap if we're moving
@@ -144,16 +144,24 @@ function EventBlock({ event, onClick, onUpdate, settings }) {
                 recurringDays: event.recurringDays,
                 date: event.date,
                 grabOffset: {
-                    y: clientOffset.y - rect.top,
-                    x: clientOffset.x - rect.left
+                    y: clientOffset ? clientOffset.y - rect.top : 0,
+                    x: clientOffset ? clientOffset.x - rect.left : 0
                 }
             };
         },
         collect: (monitor) => ({
             isDragging: monitor.isDragging()
         }),
-        options: {
-            delayTouchStart: 100
+        canDrag: () => {
+            const isTouchDevice = 'ontouchstart' in window;
+            const canDrag = isTouchDevice ? isLongPress : true;
+            console.log('[EventBlock] Can drag check:', {
+                eventId: event.id,
+                canDrag,
+                isTouchDevice,
+                isLongPress
+            });
+            return canDrag;
         }
     });
 
