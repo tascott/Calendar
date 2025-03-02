@@ -1,246 +1,175 @@
-# DailyCal
+<a id="readme-top"></a>
 
-A modern, vintage-styled calendar application with focus on user experience and productivity features.
 
-## Features
+<!-- PROJECT LOGO -->
+<br />
+<div>
+<h3>DailyCal</h3>
 
-### Calendar Views
-- **Day View**: Detailed hourly view with drag-and-drop event management
-- **Week View**: Weekly overview with event management across days
-- **Month View**: Monthly overview with event previews
-- **Auto-scroll**: Day view automatically scrolls to current time
-- **Navigation**: Previous/Next/Today navigation in all views
+  <p>
+    A minimalist daily calendar and task management application with focus mode and status overlays.
+    <br />
+    <a href="https://calendar-production-9074.up.railway.app/">View Live Site</a>
+    ·
+    <a href="https://github.com/tascott/Calendar/issues">Report Bug</a>
+  </p>
+</div>
 
-### Event Management
-- **Event Types**:
-  - Regular events
-  - Status events (displayed on the right side)
-  - Focus events (with overlay display)
-- **Event Properties**:
-  - Name
-  - Date and time
-  - Color customization (background and text)
-  - Width adjustment
-  - Custom overlay text (for focus events)
-- **Recurring Events**:
-  - Daily (with specific day selection)
-  - Weekly
-  - Monthly
-  - Visual indicator for recurring events
-- **Event Interactions**:
-  - Drag and drop
-  - Resize width
-  - Double-click to edit
-  - Delete events (single or recurring series)
 
-### User Interface
-- **Vintage Styling**:
-  - Warm color palette
-  - Classic typography
-  - Subtle borders and shadows
-- **Responsive Design**:
-  - Touch support for mobile devices
-  - Adaptive layout
-- **Visual Feedback**:
-  - Hover states
-  - Drag indicators
-  - Focus overlay animations
 
-### Settings
-- Font selection
-- Primary color customization
-- Day start/end time
-- Default event widths
-- Default status event width
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
 
-### Authentication
-- User accounts with secure login
-- JWT-based authentication
-- Protected API endpoints
 
-## Technical Details
 
-### Database Schema
+<!-- ABOUT THE PROJECT -->
+## About The Project
 
-#### Events Table
-\`\`\`sql
-CREATE TABLE events (
-    user_id INTEGER NOT NULL,
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    date TEXT NOT NULL,
-    startTime TEXT NOT NULL,
-    endTime TEXT NOT NULL,
-    type TEXT,
-    xPosition REAL DEFAULT 0,
-    width REAL DEFAULT 50,
-    backgroundColor TEXT,
-    color TEXT,
-    recurring TEXT DEFAULT 'none',
-    recurringDays TEXT DEFAULT '{}',
-    recurringEventId TEXT,
-    overlayText TEXT
-)
-\`\`\`
+DailyCal is a daily planning tool that combines calendar events, tasks, and notes in a clean, vintage-inspired interface. Key features include:
 
-#### Users Table
-\`\`\`sql
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-)
-\`\`\`
+- Event scheduling with customizable widths and positions
+- Focus mode with pomodoro timer
+- Status overlays with ambient dimming
+- Task management with priority levels and time estimates
+- Quick notes panel
+- Template system for recurring schedules
+- Vintage-inspired, minimalist design
 
-#### Settings Table
-\`\`\`sql
-CREATE TABLE settings (
-    user_id INTEGER PRIMARY KEY,
-    primaryColor TEXT DEFAULT '#2C2C2C',
-    defaultEventWidth INTEGER DEFAULT 80,
-    defaultStatusWidth INTEGER DEFAULT 20,
-    dayStartTime TEXT DEFAULT '06:00',
-    dayEndTime TEXT DEFAULT '22:00',
-    font TEXT DEFAULT 'system-ui'
-)
-\`\`\`
+### Built With
 
-### Project Structure
+* [![React][React.js]][React-url]
+* [![TailwindCSS][TailwindCSS]][Tailwind-url]
+* [![PostgreSQL][PostgreSQL]][PostgreSQL-url]
+* [![Express][Express.js]][Express-url]
 
-#### Frontend (/src)
-- **Components/**
-  - `EventForm.js`: Event creation/editing form
-  - `SettingsForm.js`: User settings management
-  - `StatusOverlay.js`: Focus mode overlay
-  - `CalendarNavigation.js`: Date navigation
-  - `TimeColumn.js`: Time markers
-  - `ViewSelector.js`: View switching
-- **Views/**
-  - `DayView.js`: Daily calendar view
-  - `WeekView.js`: Weekly calendar view
-  - `MonthView.js`: Monthly calendar view
-- **Utils/**
-  - `device.js`: Device detection utilities
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-#### Backend (/backend)
-- `index.js`: Express server and API routes
-- `db.js`: Database operations and schema
-- `package.json`: Backend dependencies
 
-### API Endpoints
 
-- **Authentication**
-  - POST `/register`: User registration
-  - POST `/login`: User authentication
-- **Events**
-  - GET `/events`: Fetch user's events
-  - POST `/events`: Create/update events
-- **Settings**
-  - GET `/settings`: Fetch user settings
-  - POST `/settings`: Update user settings
-
-### Technologies Used
-
-- **Frontend**:
-  - React
-  - TailwindCSS
-  - React DnD (drag and drop)
-  - Axios (API calls)
-- **Backend**:
-  - Express.js
-  - SQLite3
-  - JWT (authentication)
-  - bcrypt (password hashing)
-
-## Coding Style
-
-- Modern JavaScript (ES6+)
-- React Hooks for state management
-- Functional components
-- Consistent error handling
-- Detailed logging
-- Atomic database transactions
-- Modular component architecture
-
-## Next Steps
-
-### Features
-1. Task Management
-   - Task list integration
-   - Task-to-event conversion
-   - Priority levels
-   - Due dates
-
-2. Enhanced Recurring Events
-   - End date for recurring series
-   - Exception handling for series
-   - Custom recurrence patterns
-
-3. Calendar Sharing
-   - Share with other users
-   - Public/private calendars
-   - Collaboration features
-
-4. Notes Integration
-   - Note taking within events
-   - Rich text support
-   - File attachments
-
-### Technical Improvements
-1. Performance
-   - Optimize recurring event generation
-   - Implement virtual scrolling
-   - Cache frequently accessed data
-
-2. Testing
-   - Unit tests for components
-   - Integration tests for API
-   - End-to-end testing
-
-3. Mobile Experience
-   - Native mobile apps
-   - Offline support
-   - Push notifications
-
-4. Security
-   - Rate limiting
-   - Input validation
-   - CSRF protection
-
-### UI/UX Enhancements
-1. Themes
-   - Dark mode
-   - Custom theme creation
-   - More vintage styles
-
-2. Accessibility
-   - Keyboard navigation
-   - Screen reader support
-   - High contrast mode
-
-3. Visualization
-   - Timeline view
-   - Analytics dashboard
-   - Heat maps
-
+<!-- GETTING STARTED -->
 ## Getting Started
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
+To get a local copy up and running, follow these steps:
+
+### Prerequisites
+
+* npm
+  ```sh
+  npm install npm@latest -g
+  ```
+
+### Installation
+
+1. Clone the repo
+   ```sh
+   git clone https://github.com/tascott/dailycal.git
+   ```
+2. Install NPM packages for both frontend and backend
+   ```sh
    npm install
    cd backend && npm install
    ```
-3. Start the backend:
-   ```bash
-   cd backend && npm start
+3. Create a `.env` file in the root directory
+   ```sh
+   DATABASE_URL=your_postgres_connection_string
+   JWT_SECRET=your_jwt_secret
    ```
-4. Start the frontend:
-   ```bash
-   npm start
+4. Start the development server
+   ```sh
+   npm run dev
    ```
-5. Visit `http://localhost:3000`
 
-## Contributing
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-Please read our contributing guidelines before submitting pull requests.
+
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+- Create events by clicking on the timeline
+- Toggle between event, status, and focus modes
+- Manage tasks with priority levels and time estimates
+- Use the notes panel for quick thoughts and reminders
+- Save and load schedule templates
+- Customize appearance in settings
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ROADMAP -->
+## Roadmap
+
+- [ ] Expand music data to include workouts other than cycling
+
+See the [open issues](https://github.com/tascott/Calendar/issues) for a list of proposed features (and known issues), if any.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Your Name - [@yourusername](https://twitter.com/tommacode)
+
+Project Link: [https://github.com/tascott/Calendar](https://github.com/tascott/Calendar)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/github_username/repo_name.svg?style=for-the-badge
+[contributors-url]: https://github.com/github_username/repo_name/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/github_username/repo_name.svg?style=for-the-badge
+[forks-url]: https://github.com/github_username/repo_name/network/members
+[stars-shield]: https://img.shields.io/github/stars/github_username/repo_name.svg?style=for-the-badge
+[stars-url]: https://github.com/github_username/repo_name/stargazers
+[issues-shield]: https://img.shields.io/github/issues/github_username/repo_name.svg?style=for-the-badge
+[issues-url]: https://github.com/github_username/repo_name/issues
+[license-shield]: https://img.shields.io/github/license/github_username/repo_name.svg?style=for-the-badge
+[license-url]: https://github.com/github_username/repo_name/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/linkedin_username
+[product-screenshot]: images/screenshot.png
+[React.js]: https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB
+[React-url]: https://reactjs.org/
+[TailwindCSS]: https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white
+[Tailwind-url]: https://tailwindcss.com/
+[PostgreSQL]: https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white
+[PostgreSQL-url]: https://www.postgresql.org/
+[Express.js]: https://img.shields.io/badge/Express.js-404D59?style=for-the-badge
+[Express-url]: https://expressjs.com/
